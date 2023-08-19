@@ -9,6 +9,10 @@ const emailTemplatePath = path.join(
 )
 const emailTemplate = fs.readFileSync(emailTemplatePath, 'utf-8')
 
+const otpTemplatePath = path.join(__dirname, 'templates', 'otp-template.html')
+
+const otpTemplate = fs.readFileSync(otpTemplatePath, 'utf-8')
+
 const sendEmail = async ({
     email,
     subject,
@@ -18,18 +22,22 @@ const sendEmail = async ({
     otp,
 }) => {
     const transporter = nodemailer.createTransport({
-        host: 'smtp.sendgrid.net',
+        host: "smtp.gmail.com",
         port: 465,
         secure: true,
         auth: {
-            user: 'apikey',
-            pass: "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",
+            user: "bilalchughtai.dev@gmail.com",
+            pass: "hoacritefzosifir",
         },
     })
-
     let htmlTemplate
-
-    htmlTemplate = emailTemplate.replace('[recipientName]', recipient)
+    if (otp && otp !== '') {
+        htmlTemplate = otpTemplate
+            .replace('[recipientName]', recipient)
+            .replace('[otpCode]', otp)
+    } else {
+        htmlTemplate = emailTemplate.replace('[recipientName]', recipient)
+    }
 
     const mailOptions = {
         from: 'bilalchughtai.dev@gmail.com',

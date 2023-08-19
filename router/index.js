@@ -4,7 +4,7 @@ const dispensaryController = require('./dispensary')
 const categoryController = require('./categories')
 const productController = require('./products')
 const userLocationController = require('./userLocations')
-const userPaymentController = require('./userPayment')
+// const userPaymentController = require('./userPayment')
 const ordersController = require('./orders')
 
 //All routes

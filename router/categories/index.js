@@ -10,108 +10,128 @@ const { upload } = require('../../utils/functions')
 const { default: mongoose } = require('mongoose')
 
 router.post('/add', auth, upload.none(), async (req, res) => {
-    const { name, dispensary } = req.body
+    try {
+        const { name, dispensary } = req.body
 
-    if (!name || !dispensary) {
-        return sendErrorMessage(
-            statusCode.NOT_ACCEPTABLE,
-            'Required: name | dispensary',
-            res
-        )
-    }
+        if (!name || !dispensary) {
+            return sendErrorMessage(
+                statusCode.NOT_ACCEPTABLE,
+                'Required: name | dispensary',
+                res
+            )
+        }
 
-    const Exist = await Category.findOne({ name, dispensary })
+        const Exist = await Category.findOne({ name, dispensary })
 
-    if (Exist) {
-        return sendErrorMessage(
-            statusCode.NOT_ACCEPTABLE,
-            'Category already exist',
-            res
-        )
-    }
+        if (Exist) {
+            return sendErrorMessage(
+                statusCode.NOT_ACCEPTABLE,
+                'Category already exist',
+                res
+            )
+        }
 
-    let SaveObject = {
-        name: name,
-        dispensary: dispensary,
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-    }
+        let SaveObject = {
+            name: name,
+            dispensary: dispensary,
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
+        }
 
-    const result = await Category.create(SaveObject)
-    if (result) {
-        sendSuccessMessage(
-            statusCode.OK,
-            result,
-            'Category successfully created.',
-            res
-        )
-    } else {
-        return sendErrorMessage(statusCode.SERVER_ERROR, 'Invalid data', res)
+        const result = await Category.create(SaveObject)
+        if (result) {
+            sendSuccessMessage(
+                statusCode.OK,
+                result,
+                'Category successfully created.',
+                res
+            )
+        } else {
+            return sendErrorMessage(statusCode.NOT_FOUND, 'Invalid data', res)
+        }
+    } catch (error) {
+        return sendErrorMessage(statusCode.SERVER_ERROR, error?.message, res)
     }
 })
 
 router.delete('/delete', auth, upload.none(), async (req, res) => {
-    const { id, dispensary } = req.body
-    console.log(id, dispensary)
-    const Exist = await Category.findOne({ id: id, dispensary: dispensary })
-    if (!Exist) {
+    try {
+        const { id, dispensary } = req.body
+
+        const Exist = await Category.findOne({ id: id, dispensary: dispensary })
+        if (!Exist) {
+            return sendErrorMessage(
+                statusCode.NOT_ACCEPTABLE,
+                'Invalid category/dispensary id',
+                res
+            )
+        }
+        if (Exist) {
+            const _details = await Category.findByIdAndDelete(id)
+            sendSuccessMessage(
+                statusCode.OK,
+                _details,
+                'Category deleted successfully',
+                res
+            )
+        }
+    } catch (error) {
         return sendErrorMessage(
-            statusCode.NOT_ACCEPTABLE,
-            'Invalid category/dispensary id',
-            res
-        )
-    }
-    if (Exist) {
-        const _details = await Category.findByIdAndDelete(id)
-        sendSuccessMessage(
-            statusCode.OK,
-            _details,
-            'Category deleted successfully',
+            statusCode.SERVER_ERROR,
+            error.message,
             res
         )
     }
 })
 
 router.patch('/update', auth, upload.none(), async (req, res) => {
-    const { id, dispensary } = req.body
-    if (!id || !dispensary) {
+    try {
+        const { id, dispensary } = req.body
+        if (!id || !dispensary) {
+            return sendErrorMessage(
+                statusCode.NOT_ACCEPTABLE,
+                'Required: id | dispensary ',
+                res
+            )
+        }
+    
+        const Exist = await Category.findOne({ id })
+    
+        if (!Exist) {
+            return sendErrorMessage(
+                statusCode.NOT_ACCEPTABLE,
+                'Invalid Category id',
+                res
+            )
+        }
+        const clone = { ...req.body }
+        delete clone.id
+        delete clone.dispensary
+        let SaveObject = {
+            ...clone,
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
+        }
+    
+        const result = await Category.findByIdAndUpdate(id, SaveObject, {
+            new: true,
+        })
+        if (result) {
+            sendSuccessMessage(
+                statusCode.OK,
+                result,
+                'Category successfully updated.',
+                res
+            )
+        } else {
+            return sendErrorMessage(statusCode.SERVER_ERROR, 'Invalid data', res)
+        }
+    } catch (error) {
         return sendErrorMessage(
-            statusCode.NOT_ACCEPTABLE,
-            'Required: id | dispensary ',
+            statusCode.SERVER_ERROR,
+            error.message,
             res
         )
-    }
-
-    const Exist = await Category.findOne({ id })
-
-    if (!Exist) {
-        return sendErrorMessage(
-            statusCode.NOT_ACCEPTABLE,
-            'Invalid Category id',
-            res
-        )
-    }
-    const clone = { ...req.body }
-    delete clone.id
-    delete clone.dispensary
-    let SaveObject = {
-        ...clone,
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-    }
-
-    const result = await Category.findByIdAndUpdate(id, SaveObject, {
-        new: true,
-    })
-    if (result) {
-        sendSuccessMessage(
-            statusCode.OK,
-            result,
-            'Category successfully updated.',
-            res
-        )
-    } else {
-        return sendErrorMessage(statusCode.SERVER_ERROR, 'Invalid data', res)
     }
 })
 
@@ -177,7 +197,7 @@ router.get('/', upload.none(), async (req, res) => {
                                 quantity: 1,
                                 image: 1,
                                 category: 1,
-                                dispensary: 1
+                                dispensary: 1,
                                 // Add other fields you want to include from the "Product" collection
                             },
                         },
@@ -207,7 +227,7 @@ router.get('/', upload.none(), async (req, res) => {
         console.error(error)
         return sendErrorMessage(
             statusCode.SERVER_ERROR,
-            'An error occurred while fetching categories and their products',
+            error.message,
             res
         )
     }
