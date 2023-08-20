@@ -133,7 +133,7 @@ router.post('/register', async (req, res) => {
             })
         } else {
             return sendErrorMessage(
-                statusCode.SERVER_ERROR,
+                statusCode.BAD_REQUEST,
                 'Invalid user data',
                 res
             )
