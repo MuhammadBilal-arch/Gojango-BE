@@ -125,7 +125,7 @@ router.post('/register', async (req, res) => {
             )
             sendEmail({
                 email: user?.email,
-                subject: 'Gojango - Welcome',
+                subject: `Gojango - Welcome ${user?.fname + ' ' + user?.lname}`,
                 template: 'Welcome',
                 text: ``,
                 recipient: user?.fname + ' ' + user?.lname,
