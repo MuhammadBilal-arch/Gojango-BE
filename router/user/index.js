@@ -123,14 +123,14 @@ router.post('/register', async (req, res) => {
                 'Account successfully registered',
                 res
             )
-            // sendEmail({
-            //     email: user?.email,
-            //     subject: `Gojango - Welcome ${user?.fname + ' ' + user?.lname}`,
-            //     template: 'Welcome',
-            //     text: ``,
-            //     recipient: user?.fname + ' ' + user?.lname,
-            //     otp: '',
-            // })
+            sendEmail({
+                email: user.email,
+                subject: `Gojango - Welcome ${user.fname + ' ' + user.lname}`,
+                template: 'Welcome',
+                text: ``,
+                recipient: user.fname + ' ' + user.lname,
+                otp: '',
+            })
         } else {
             return sendErrorMessage(
                 statusCode.BAD_REQUEST,
