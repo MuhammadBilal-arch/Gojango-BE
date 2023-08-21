@@ -446,7 +446,7 @@ router.post('/forgot-password', async (req, res) => {
         if (!req.body || !email || !password) {
             return sendErrorMessage(
                 statusCode.NOT_FOUND,
-                'Required: Email | Password',
+                'Required: Email | Password .',
                 res
             )
         }
