@@ -21,34 +21,46 @@ const sendEmail = async ({
     recipient,
     otp,
 }) => {
-    const transporter = nodemailer.createTransport({
-        host: "smtp.gmail.com",
-        port: 465,
-        secure: true,
-        auth: {
-            user: "bilalchughtai.dev@gmail.com",
-            pass: "hoacritefzosifir",
-        },
-    })
-    let htmlTemplate
-    if (otp && otp !== '') {
-        htmlTemplate = otpTemplate
-            .replace('[recipientName]', recipient)
-            .replace('[otpCode]', otp)
-    } else {
-        htmlTemplate = emailTemplate.replace('[recipientName]', recipient)
+    try {
+        if (!email || !subject || !recipient) {
+            return sendErrorMessage(
+                statusCode.BAD_REQUEST,
+                'Invalid Email or subject or recipient',
+                res
+            )
+        }
+        const transporter = nodemailer.createTransport({
+            host: 'smtp.gmail.com',
+            port: 465,
+            secure: true,
+            auth: {
+                user: 'bilalchughtai.dev@gmail.com',
+                pass: 'hoacritefzosifir',
+            },
+        })
+        let htmlTemplate
+        if (otp && otp !== '') {
+            htmlTemplate = otpTemplate
+                .replace('[recipientName]', recipient)
+                .replace('[otpCode]', otp)
+        } else {
+            htmlTemplate = emailTemplate.replace('[recipientName]', recipient)
+        }
+
+        const mailOptions = {
+            from: 'bilalchughtai.dev@gmail.com',
+            to: email,
+            subject: subject,
+            html: htmlTemplate,
+        }
+
+        const info = await transporter.sendMail(mailOptions)
+
+        console.log('Email sent:', info.messageId)
+    } catch (error) {
+        console.log('failed to send email')
+        sendErrorMessage(statusCode.BAD_REQUEST, error.message, res)
     }
-
-    const mailOptions = {
-        from: 'bilalchughtai.dev@gmail.com',
-        to: email,
-        subject: subject,
-        html: htmlTemplate,
-    }
-
-    const info = await transporter.sendMail(mailOptions)
-
-    console.log('Email sent:', info.messageId)
 }
 
 module.exports = {
