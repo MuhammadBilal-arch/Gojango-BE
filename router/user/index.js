@@ -249,7 +249,7 @@ router.post(
                     res
                 )
             }
-
+            console.log(files,"FILES")
             let ImageObject = {}
 
             if (files['license_front'] && files['license_back']) {
@@ -283,6 +283,8 @@ router.post(
                 }
             }
 
+            console.log(ImageObject,"IMAGE OBJECT")
+
             if (Object.keys(ImageObject).length === 0) {
                 return sendErrorMessage(
                     statusCode.NOT_FOUND,
@@ -304,7 +306,7 @@ router.post(
                 res
             )
         } catch (error) {
-            return sendErrorMessage(statusCode.NOT_FOUND, error.message, res)
+            return sendErrorMessage(statusCode.SERVER_ERROR, error.message, res)
         }
     }
 )
