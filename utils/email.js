@@ -56,7 +56,7 @@ const sendEmail = async ({
 
         const info = await transporter.sendMail(mailOptions)
 
-        console.log('Email sent:', info.messageId)
+        console.log('Email sent:', info?.messageId)
     } catch (error) {
         console.log('Failed to send email:', error.message);
         sendErrorMessage(statusCode.BAD_REQUEST, error.message, res)
