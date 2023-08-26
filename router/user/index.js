@@ -26,6 +26,7 @@ router.post('/register', async (req, res) => {
             address,
             ssn,
         } = req.body
+
         if (!accountType) {
             return sendErrorMessage(
                 statusCode.NOT_ACCEPTABLE,
@@ -33,74 +34,57 @@ router.post('/register', async (req, res) => {
                 res
             )
         }
+
         const userExist = await User.findOne({ email })
+
+        const missingFields = []
+        if (!fname) missingFields.push('fname')
+        if (!lname) missingFields.push('lname')
+        if (!email) missingFields.push('email')
+
         if (accountType === 'CLIENT') {
-            if (!fname || !lname || !email || !dob) {
-                return sendErrorMessage(
-                    statusCode.NOT_ACCEPTABLE,
-                    'Required: fname | lname | email | password | dob',
-                    res
-                )
-            }
-        } else {
-            if (!fname || !lname || !email || !ssn) {
-                return sendErrorMessage(
-                    statusCode.NOT_ACCEPTABLE,
-                    'Required: fname | lname | email | password | ssn',
-                    res
-                )
-            }
+            if (!dob) missingFields.push('dob')
+        } else if (accountType === 'DRIVER') {
+            if (!ssn) missingFields.push('ssn')
+            if (!address) missingFields.push('address')
         }
-        if (userExist) {
+
+        if (missingFields.length > 0) {
             return sendErrorMessage(
                 statusCode.NOT_ACCEPTABLE,
-                'Email already exist',
+                `Missing fields: ${missingFields.join(' | ')}`,
                 res
             )
         }
-        let SaveObject = {}
+
+        if (userExist) {
+            return sendErrorMessage(
+                statusCode.NOT_ACCEPTABLE,
+                'Email already exists',
+                res
+            )
+        }
+
+        const SaveObject = {
+            fname,
+            lname,
+            email,
+            phone,
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
+            accountType,
+        }
+
         if (accountType === 'CLIENT') {
-            SaveObject = {
-                fname,
-                lname,
-                email,
-                dob,
-                phone,
-                createdAt: Date.now(),
-                updatedAt: Date.now(),
-                accountType: accountType,
-            }
-        } else {
-            SaveObject = {
-                fname,
-                lname,
-                email,
-                ssn,
-                phone,
-                address,
-                createdAt: Date.now(),
-                updatedAt: Date.now(),
-                accountType: accountType,
-            }
+            SaveObject.dob = dob
+        } else if (accountType === 'DRIVER') {
+            SaveObject.ssn = ssn
+            SaveObject.address = address
         }
-        if (facebookID) {
-            SaveObject = {
-                ...SaveObject,
-                facebookID,
-            }
-        }
-        if (googleID) {
-            SaveObject = {
-                ...SaveObject,
-                googleID,
-            }
-        }
-        if (password) {
-            SaveObject = {
-                ...SaveObject,
-                password,
-            }
-        }
+
+        if (facebookID) SaveObject.facebookID = facebookID
+        if (googleID) SaveObject.googleID = googleID
+        if (password) SaveObject.password = password
 
         const user = await User.create(SaveObject)
 
@@ -256,8 +240,7 @@ router.post(
     async (req, res) => {
         try {
             const { files, body } = req
-            const { email } = body
-            console.log(req)
+            const { email } = body 
             const user = await User.findOne({ email: email })
             if (!user) {
                 return sendErrorMessage(

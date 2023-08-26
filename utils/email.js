@@ -58,7 +58,7 @@ const sendEmail = async ({
 
         console.log('Email sent:', info.messageId)
     } catch (error) {
-        console.log('failed to send email')
+        console.log('Failed to send email:', error.message);
         sendErrorMessage(statusCode.BAD_REQUEST, error.message, res)
     }
 }
