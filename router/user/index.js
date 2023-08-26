@@ -239,9 +239,7 @@ router.post(
     ]),
     async (req, res) => {
         try {
-            console.log('API CALLED')
-            console.log(req)
-            const { files, body } = req
+            const { files, body } = req 
             const { email } = body 
             const user = await User.findOne({ email: email })
             if (!user) {
@@ -251,7 +249,14 @@ router.post(
                     res
                 )
             }
-            console.log(files,"FILES")
+            if (Object.keys(files).length === 0) {
+                return sendErrorMessage(
+                    statusCode.NOT_FOUND,
+                    'No valid images were uploaded',
+                    res
+                )
+            }
+
             let ImageObject = {}
 
             if (files['license_front'] && files['license_back']) {
@@ -285,15 +290,13 @@ router.post(
                 }
             }
 
-            console.log(ImageObject,"IMAGE OBJECT")
-
-            if (Object.keys(ImageObject).length === 0) {
-                return sendErrorMessage(
-                    statusCode.NOT_FOUND,
-                    'No valid images were uploaded',
-                    res
-                )
-            }
+            // if (Object.keys(ImageObject).length === 0) {
+            //     return sendErrorMessage(
+            //         statusCode.NOT_FOUND,
+            //         'No valid images were uploaded',
+            //         res
+            //     )
+            // }
 
             const _details = await User.findOneAndUpdate(
                 { email: email },
