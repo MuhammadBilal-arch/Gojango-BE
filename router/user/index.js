@@ -239,6 +239,8 @@ router.post(
     ]),
     async (req, res) => {
         try {
+            console.log('API CALLED')
+            console.log(req)
             const { files, body } = req
             const { email } = body 
             const user = await User.findOne({ email: email })
