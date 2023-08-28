@@ -143,20 +143,19 @@ router.post('/login', async (req, res) => {
         const matched = await user.matchPassword(password)
 
         if (matched) {
-            const user = await User.findOne({ email: email }).select(
-                '-password'
-            )
+            const userWithoutPassword = user.toObject()
+            delete userWithoutPassword.password
+
             sendSuccessMessage(
                 statusCode.OK,
                 {
-                    ...user._doc,
+                    ...userWithoutPassword,
                     token: generateToken(user._id),
                 },
                 'Account successfully logged',
                 res
             )
         } else {
-            //401 unauthorized
             return sendErrorMessage(
                 statusCode.SERVER_ERROR,
                 'Invalid credentials',
@@ -239,8 +238,8 @@ router.post(
     ]),
     async (req, res) => {
         try {
-            const { files, body } = req 
-            const { email } = body 
+            const { files, body } = req
+            const { email } = body
             const user = await User.findOne({ email: email })
             if (!user) {
                 return sendErrorMessage(
@@ -350,10 +349,19 @@ router.post('/verify-otp', async (req, res) => {
     try {
         const { email, otp } = req.body
 
-        if (!email || !otp) {
+        if (!email || isNaN(otp)) {
             return sendErrorMessage(
                 statusCode.NOT_FOUND,
-                'Required: email | otp',
+                'Invalid data format: email or otp is missing or invalid',
+                res
+            )
+        }
+
+        const numericOtp = parseInt(otp) // Convert the otp to a numeric value
+        if (isNaN(numericOtp)) {
+            return sendErrorMessage(
+                statusCode.BAD_REQUEST,
+                'Invalid data format: otp should be a valid number',
                 res
             )
         }
@@ -382,6 +390,7 @@ router.post('/verify-otp', async (req, res) => {
             )
         }
     } catch (error) {
+        console.log(err.message)
         return sendErrorMessage(statusCode.SERVER_ERROR, error.message, res)
     }
 })
