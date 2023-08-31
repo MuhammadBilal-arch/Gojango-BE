@@ -7,18 +7,27 @@ const UserLocations = require('../../model/userLocations')
 
 const { upload } = require('../../utils/functions')
 
-router.post('/add', auth, upload.none(), async (req, res) => {
+router.post('/create', auth, upload.none(), async (req, res) => {
     try {
-        const { street, zipCode, state, city, label, unit } = req.body
+        const { street, zipCode, state, city, label, unit, lat, lng } = req.body
+        const missingFields = []
+        if (!street) missingFields.push('street')
+        if (!unit) missingFields.push('unit')
+        if (!zipCode) missingFields.push('zipCode')
+        if (!city) missingFields.push('city')
+        if (!state) missingFields.push('state')
+        if (!label) missingFields.push('label')
+        if (!lat) missingFields.push('lat')
+        if (!lng) missingFields.push('lng')
 
-        if (!street || !zipCode || !state || !city || !label || !unit) {
+        if (missingFields.length > 0) {
             return sendErrorMessage(
                 statusCode.NOT_ACCEPTABLE,
-                'Required: name | zipCode | state | city | label | unit',
+                `Missing fields: ${missingFields.join(' | ')}`,
                 res
             )
         }
-    
+
         const Exist = await UserLocations.findOne({
             user_id: req?.user?.id,
             street,
@@ -28,7 +37,7 @@ router.post('/add', auth, upload.none(), async (req, res) => {
             label,
             unit,
         })
-    
+
         if (Exist) {
             return sendErrorMessage(
                 statusCode.NOT_ACCEPTABLE,
@@ -36,7 +45,7 @@ router.post('/add', auth, upload.none(), async (req, res) => {
                 res
             )
         }
-    
+
         let SaveObject = {
             user_id: req?.user?.id,
             street,
@@ -45,10 +54,12 @@ router.post('/add', auth, upload.none(), async (req, res) => {
             city,
             label,
             unit,
+            lat,
+            lng,
             createdAt: Date.now(),
             updatedAt: Date.now(),
         }
-    
+
         const result = await UserLocations.create(SaveObject)
         if (result) {
             sendSuccessMessage(
@@ -101,13 +112,21 @@ router.patch('/update', auth, upload.none(), async (req, res) => {
     try {
         const { id } = req.body
         if (!id) {
-            return sendErrorMessage(statusCode.NOT_ACCEPTABLE, 'Required: id ', res)
+            return sendErrorMessage(
+                statusCode.NOT_ACCEPTABLE,
+                'Required: id ',
+                res
+            )
         }
-    
+
         const Exist = await UserLocations.findOne({ id, user_id: req.user.id })
-    
+
         if (!Exist) {
-            return sendErrorMessage(statusCode.NOT_ACCEPTABLE, 'Invalid id', res)
+            return sendErrorMessage(
+                statusCode.NOT_ACCEPTABLE,
+                'Invalid id',
+                res
+            )
         }
         const clone = { ...req.body }
         delete clone.id
@@ -115,13 +134,13 @@ router.patch('/update', auth, upload.none(), async (req, res) => {
             ...clone,
             updatedAt: Date.now(),
         }
-    
+
         const result = await UserLocations.findOneAndUpdate(
             { _id: id, user_id: req.user.id },
             SaveObject,
             { new: true }
         )
-    
+
         if (result) {
             sendSuccessMessage(
                 statusCode.OK,
@@ -130,16 +149,22 @@ router.patch('/update', auth, upload.none(), async (req, res) => {
                 res
             )
         } else {
-            return sendErrorMessage(statusCode.SERVER_ERROR, 'Invalid data', res)
+            return sendErrorMessage(
+                statusCode.SERVER_ERROR,
+                'Invalid data',
+                res
+            )
         }
     } catch (error) {
         return sendErrorMessage(statusCode.SERVER_ERROR, error.message, res)
     }
 })
- 
-router.get('/',auth, async (req, res) => {
+
+router.get('/', auth, async (req, res) => {
     try {
-        const allUserLocations = await UserLocations.find({ id: req.user.id })
+        const allUserLocations = await UserLocations.find({
+            user_id: req.user.id,
+        })
 
         if (allUserLocations.length === 0) {
             return sendErrorMessage(

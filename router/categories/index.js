@@ -76,11 +76,7 @@ router.delete('/delete', auth, upload.none(), async (req, res) => {
             )
         }
     } catch (error) {
-        return sendErrorMessage(
-            statusCode.SERVER_ERROR,
-            error.message,
-            res
-        )
+        return sendErrorMessage(statusCode.SERVER_ERROR, error.message, res)
     }
 })
 
@@ -94,9 +90,9 @@ router.patch('/update', auth, upload.none(), async (req, res) => {
                 res
             )
         }
-    
+
         const Exist = await Category.findOne({ id })
-    
+
         if (!Exist) {
             return sendErrorMessage(
                 statusCode.NOT_ACCEPTABLE,
@@ -112,7 +108,7 @@ router.patch('/update', auth, upload.none(), async (req, res) => {
             createdAt: Date.now(),
             updatedAt: Date.now(),
         }
-    
+
         const result = await Category.findByIdAndUpdate(id, SaveObject, {
             new: true,
         })
@@ -124,14 +120,14 @@ router.patch('/update', auth, upload.none(), async (req, res) => {
                 res
             )
         } else {
-            return sendErrorMessage(statusCode.SERVER_ERROR, 'Invalid data', res)
+            return sendErrorMessage(
+                statusCode.SERVER_ERROR,
+                'Invalid data',
+                res
+            )
         }
     } catch (error) {
-        return sendErrorMessage(
-            statusCode.SERVER_ERROR,
-            error.message,
-            res
-        )
+        return sendErrorMessage(statusCode.SERVER_ERROR, error.message, res)
     }
 })
 
@@ -217,19 +213,15 @@ router.get('/', upload.none(), async (req, res) => {
 
         sendSuccessMessage(
             statusCode.OK,
-            {
-                data: categoriesWithProducts,
-            },
+
+            categoriesWithProducts,
+
             'Categories and their products successfully fetched.',
             res
         )
     } catch (error) {
         console.error(error)
-        return sendErrorMessage(
-            statusCode.SERVER_ERROR,
-            error.message,
-            res
-        )
+        return sendErrorMessage(statusCode.SERVER_ERROR, error.message, res)
     }
 })
 

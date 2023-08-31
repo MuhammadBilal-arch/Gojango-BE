@@ -24,10 +24,10 @@ const userLocationSchema = mongoose.Schema({
         type: String,
     },
     lat: {
-        type: String,
+        type: Number,
     },
     lng: {
-        type: String,
+        type: Number,
     },
     selected: {
         type: Boolean,

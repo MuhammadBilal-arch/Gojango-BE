@@ -25,6 +25,8 @@ router.post('/register', async (req, res) => {
             accountType,
             address,
             ssn,
+            bank_routing,
+            bank_account
         } = req.body
 
         if (!accountType) {
@@ -47,6 +49,8 @@ router.post('/register', async (req, res) => {
         } else if (accountType === 'DRIVER') {
             if (!ssn) missingFields.push('ssn')
             if (!address) missingFields.push('address')
+            if (!bank_routing) missingFields.push('bank_routing')
+            if (!bank_account) missingFields.push('bank_account')
         }
 
         if (missingFields.length > 0) {
@@ -80,6 +84,8 @@ router.post('/register', async (req, res) => {
         } else if (accountType === 'DRIVER') {
             SaveObject.ssn = ssn
             SaveObject.address = address
+            SaveObject.bank_routing = bank_routing
+            SaveObject.bank_account = bank_account
         }
 
         if (facebookID) SaveObject.facebookID = facebookID

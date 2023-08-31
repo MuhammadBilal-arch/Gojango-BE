@@ -21,21 +21,22 @@ router.post('/add', auth, upload.single('image'), async (req, res) => {
             delivery_days,
             pickup_days,
         } = req.body
+        const missingFields = []
+        if (!name) missingFields.push('name')
+        if (!description) missingFields.push('description')
+        if (!location) missingFields.push('location')
+        if (!phone) missingFields.push('phone')
+        if (!delivery_time) missingFields.push('delivery_time')
+        if (!rating) missingFields.push('rating')
 
-        if (
-            !name ||
-            !description ||
-            !location ||
-            !phone ||
-            !delivery_time ||
-            !rating
-        ) {
+        if (missingFields.length > 0) {
             return sendErrorMessage(
                 statusCode.NOT_ACCEPTABLE,
-                'Required: name | description | location | phone | longitude | latitude | rating | delivery_days | pickup_days',
+                `Missing fields: ${missingFields.join(' | ')}`,
                 res
             )
         }
+
         const Exist = await Dispensary.findOne({ name })
 
         if (Exist) {
@@ -162,7 +163,6 @@ router.patch('/update', auth, upload.single('image'), async (req, res) => {
 
 router.get('/', async (req, res) => {
     try {
-        console.log(req.params)
         const userLat = parseFloat(req.query.lat) // Replace 'lat' with the key where you are sending user's latitude
         const userLon = parseFloat(req.query.long) // Replace 'long' with the key where you are sending user's longitude
 
@@ -208,8 +208,9 @@ router.get('/', async (req, res) => {
 
 router.get('/nearest', async (req, res) => {
     try {
+        console.log(req.query)
         const userLatitude = parseFloat(req.query.lat) // User's latitude
-        const userLongitude = parseFloat(req.query.long) // User's longitude
+        const userLongitude = parseFloat(req.query.lng) // User's longitude
         const radiusInMiles = 5 // Specify the desired radius in miles
 
         if (isNaN(userLatitude) || isNaN(userLongitude)) {
