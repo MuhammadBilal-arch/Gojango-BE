@@ -11,11 +11,16 @@ const { default: mongoose } = require('mongoose')
 router.post('/add', auth, upload.none(), async (req, res) => {
     try {
         const { dispensary_id, products, location_id, delivery_note } = req.body
+        const missingFields = []
+        if (!dispensary_id) missingFields.push('dispensary_id')
+        if (!products) missingFields.push('products')
+        if (!location_id) missingFields.push('location_id')
+        if (!delivery_note) missingFields.push('delivery_note')
 
-        if (!dispensary_id || !products || !location_id || !delivery_note) {
+        if (missingFields.length > 0) {
             return sendErrorMessage(
                 statusCode.NOT_ACCEPTABLE,
-                'Required: dispensary_id | products | location_id | delivery_note',
+                `Missing fields: ${missingFields.join(' | ')}`,
                 res
             )
         }

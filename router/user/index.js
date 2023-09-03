@@ -99,13 +99,7 @@ router.post('/register', async (req, res) => {
                 statusCode.OK,
                 {
                     _id: user._id,
-                    fname: user.fname,
-                    fname: user.fname,
-                    email: user.email,
-                    phone: user.phone,
-                    ssn: user.ssn,
-                    address: user.address,
-                    dob: user.dob,
+                    ...SaveObject,
                     createdAt: Date.now(),
                     updatedAt: Date.now(),
                     token: generateToken(user._id),
@@ -242,7 +236,7 @@ router.post(
         { name: 'license_back' },
         { name: 'passport_image' },
     ]),
-    async (req, res) => {
+    async (req, res) => { 
         try {
             const { files, body } = req
             const { email } = body

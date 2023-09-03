@@ -5,11 +5,12 @@ const storage = multer.diskStorage({
         cb(null, 'public/files')
     },
     filename: (req, file, cb) => {
-
-        var Extension = file.originalname.split('.').pop()
-        cb(null, Date.now() + '.' + Extension)
+        const fileExtension = file.originalname.split('.').pop();
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        const filename = `${uniqueSuffix}.${fileExtension}`;
+        cb(null, filename);
     },
-})
+});
 
 const uploadToLocalDir = multer({ storage: storage }).array('file')
 const uploadSingleToLocalDir = multer({ storage: storage }).single('file')
