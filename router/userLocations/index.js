@@ -6,6 +6,7 @@ const { statusCode } = require('../../utils/statusCode')
 const UserLocations = require('../../model/userLocations')
 
 const { upload } = require('../../utils/functions')
+const { exists } = require('fs')
 
 router.post('/create', auth, upload.none(), async (req, res) => {
     try {
@@ -79,9 +80,9 @@ router.post('/create', auth, upload.none(), async (req, res) => {
 router.delete('/delete', auth, upload.none(), async (req, res) => {
     try {
         const { id } = req.body
-
+        console.log(id, req?.user?.id)
         const Exist = await UserLocations.findOne({
-            id: id,
+            _id: id,
             user_id: req?.user?.id,
         })
         if (!Exist) {
@@ -93,7 +94,7 @@ router.delete('/delete', auth, upload.none(), async (req, res) => {
         }
         if (Exist) {
             const _details = await UserLocations.findByIdAndDelete({
-                id: id,
+                _id: id,
                 user_id: req?.user?.id,
             })
             sendSuccessMessage(
@@ -155,6 +156,51 @@ router.patch('/update', auth, upload.none(), async (req, res) => {
                 res
             )
         }
+    } catch (error) {
+        return sendErrorMessage(statusCode.SERVER_ERROR, error.message, res)
+    }
+})
+
+router.patch('/status', auth, upload.none(), async (req, res) => {
+    try {
+        const { id } = req.body
+        if (!id) {
+            return sendErrorMessage(
+                statusCode.NOT_ACCEPTABLE,
+                'Required: id',
+                res
+            )
+        }
+
+        await UserLocations.updateMany(
+            {
+                user_id: req.user.id,
+            },
+            {
+                $set: { selected: false },
+            }
+        )
+
+        const existingLocation = await UserLocations.findOneAndUpdate(
+            { _id: id, user_id: req.user.id },
+            { $set: { selected: true } },
+            { new: true }
+        )
+
+        if (!existingLocation) {
+            return sendErrorMessage(
+                statusCode.NOT_FOUND,
+                'Location not found',
+                res
+            )
+        }
+
+        sendSuccessMessage(
+            statusCode.OK,
+            existingLocation,
+            'Location successfully selected',
+            res
+        )
     } catch (error) {
         return sendErrorMessage(statusCode.SERVER_ERROR, error.message, res)
     }

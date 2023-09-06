@@ -15,7 +15,7 @@ router.use('/category', categoryController)
 router.use('/product', productController)
 router.use('/location', userLocationController)
 // router.use('/payment', userPaymentController)
-router.use('/orders', ordersController)
+router.use('/order', ordersController)
 router.use('/chat', chatController)
 
 module.exports = router

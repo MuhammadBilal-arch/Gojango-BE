@@ -21,6 +21,7 @@ router.post('/add', auth, upload.single('image'), async (req, res) => {
             delivery_days,
             pickup_days,
         } = req.body
+
         const missingFields = []
         if (!name) missingFields.push('name')
         if (!description) missingFields.push('description')
@@ -28,6 +29,7 @@ router.post('/add', auth, upload.single('image'), async (req, res) => {
         if (!phone) missingFields.push('phone')
         if (!delivery_time) missingFields.push('delivery_time')
         if (!rating) missingFields.push('rating')
+        if (!req?.file) missingFields.push('image')
 
         if (missingFields.length > 0) {
             return sendErrorMessage(
@@ -210,7 +212,7 @@ router.get('/nearest', async (req, res) => {
     try {
         console.log(req.query)
         const userLatitude = parseFloat(req.query.lat) // User's latitude
-        const userLongitude = parseFloat(req.query.lng) // User's longitude
+        const userLongitude = parseFloat(req.query.long) // User's longitude
         const radiusInMiles = 5 // Specify the desired radius in miles
 
         if (isNaN(userLatitude) || isNaN(userLongitude)) {

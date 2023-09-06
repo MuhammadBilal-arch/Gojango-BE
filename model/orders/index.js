@@ -22,7 +22,11 @@ const orderSchema = mongoose.Schema({
     ],
     user_id: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
+        ref: 'USER',
+    },
+    driver_id: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'USER',
     },
     location_id: {
         type: mongoose.Schema.Types.ObjectId,
@@ -31,6 +35,18 @@ const orderSchema = mongoose.Schema({
     delivery_note: {
         type: String,
     },
+    approved: {
+        type: Boolean,
+        default: false,
+    },
+    driver_status: {
+        type: String,
+    },
+    order_status: {
+        type: Boolean,
+        default: false,
+    },
+
     createdAt: {
         type: Date,
     },

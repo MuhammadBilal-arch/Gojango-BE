@@ -10,7 +10,7 @@ const { statusCode } = require('../../utils/statusCode')
 const { upload, generateOTP } = require('../../utils/functions')
 const { sendEmail } = require('../../utils/email')
 const OTP = require('../../model/otp')
-
+const passport = require('passport')
 router.post('/register', async (req, res) => {
     try {
         const {
@@ -26,7 +26,7 @@ router.post('/register', async (req, res) => {
             address,
             ssn,
             bank_routing,
-            bank_account
+            bank_account,
         } = req.body
 
         if (!accountType) {
@@ -167,35 +167,117 @@ router.post('/login', async (req, res) => {
     }
 })
 
-router.post('/login/google', async (req, res) => {
+router.post('/google/userinfo', async (req, res) => {
+    const { access_token, accountType } = req.body
+
     try {
-        const { googleId } = req.body
+        const response = await fetch(
+            'https://www.googleapis.com/oauth2/v1/userinfo',
+            {
+                headers: {
+                    Authorization: `Bearer ${access_token}`,
+                },
+            }
+        )
 
-        // Check if the user with the given Google ID exists
-        const user = await User.findOne({ googleId })
-        if (!user) {
-            return sendErrorMessage(statusCode.NOT_FOUND, 'User not found', res)
+        if (response.ok) {
+            const userInfo = await response.json()
+            const userExist = await User.findOne({ email: userInfo?.email })
+            if (userExist) {
+                sendSuccessMessage(
+                    statusCode.OK,
+                    {
+                        ...userExist._doc,
+                        token: generateToken(userExist?._id),
+                    },
+                    'Account successfully logged',
+                    res
+                )
+            } else {
+                const SaveObject = {
+                    fname: userInfo?.given_name,
+                    lname: userInfo?.family_name,
+                    email: userInfo?.email,
+                    googleID: userInfo?.id,
+                    photo: userInfo?.picture,
+                    createdAt: Date.now(),
+                    updatedAt: Date.now(),
+                    accountType: accountType,
+                }
+                const user = await User.create(SaveObject)
+                if (user) {
+                    sendSuccessMessage(
+                        statusCode.OK,
+                        {
+                            _id: user._id,
+                            ...SaveObject,
+                            createdAt: Date.now(),
+                            updatedAt: Date.now(),
+                            token: generateToken(user._id),
+                        },
+                        'Account successfully registered',
+                        res
+                    )
+                    sendEmail({
+                        email: user.email,
+                        subject: `Gojango - Welcome ${
+                            user.fname + ' ' + user.lname
+                        }`,
+                        template: 'Welcome',
+                        text: ``,
+                        recipient: user.fname + ' ' + user.lname,
+                        otp: '',
+                    })
+                } else {
+                    return sendErrorMessage(
+                        statusCode.BAD_REQUEST,
+                        'Invalid user data',
+                        res
+                    )
+                }
+            }
+        } else {
+            res.status(400).json({ error: 'Failed to fetch user information' })
         }
+    } catch (error) {
+        console.error('Error fetching user information', error)
+        res.status(500).json({ error: 'Internal server error' })
+    }
+})
+router.get(
+    '/google',
+    passport.authenticate('google', {
+        scope: ['profile', 'email'],
+    })
+)
 
-        // Generate and send the login response
+router.get(
+    '/google/callback',
+    passport.authenticate('google', {
+        failureRedirect: '/login/failed',
+        successRedirect: 'http://localhost:5173',
+    })
+)
+
+router.get('/login/failed', async (req, res) => {
+    return sendErrorMessage(statusCode.NOT_FOUND, "Account doesn't exist", res)
+})
+router.get('/login/success', async (req, res) => {
+    if (req.user) {
         sendSuccessMessage(
             statusCode.OK,
-            {
-                _id: user._id,
-                fname: user.fname,
-                lname: user.fname,
-                email: user.email,
-                dob: user.dob,
-                createdAt: Date.now(),
-                updatedAt: Date.now(),
-                token: generateToken(user._id),
-            },
-            'Logged in successfully',
+            {},
+            'Account successfully logged',
             res
         )
-    } catch (error) {
-        return sendErrorMessage(statusCode.SERVER_ERROR, error.message, res)
+    } else {
+        sendErrorMessage(statusCode.NOT_FOUND, "Account doesn't exist", res)
     }
+})
+
+router.get('/logout', async (req, res) => {
+    req.logout()
+    // res.redirect('http://localhost:5173')
 })
 
 router.post('/login/facebook', async (req, res) => {
@@ -236,7 +318,7 @@ router.post(
         { name: 'license_back' },
         { name: 'passport_image' },
     ]),
-    async (req, res) => { 
+    async (req, res) => {
         try {
             const { files, body } = req
             const { email } = body
@@ -259,12 +341,8 @@ router.post(
             let ImageObject = {}
 
             if (files['license_front'] && files['license_back']) {
-                const licenseFrontPath = files['license_front'][0]
-                    ? files['license_front'][0]?.path
-                    : null
-                const licenseBackPath = files['license_back'][0]
-                    ? files['license_back'][0]?.path
-                    : null
+                const licenseFrontPath = files['license_front'][0]?.path || null
+                const licenseBackPath = files['license_back'][0]?.path || null
 
                 ImageObject = {
                     license_image: {
@@ -279,23 +357,13 @@ router.post(
             }
 
             if (files['passport_image']) {
-                const passportPath = files['passport_image'][0]
-                    ? files['passport_image'][0]?.path
-                    : null
+                const passportPath = files['passport_image'][0]?.path || null
                 ImageObject = {
                     passport_image: passportPath
                         .replace(/\\/g, '/')
                         .split('public/')[1],
                 }
             }
-
-            // if (Object.keys(ImageObject).length === 0) {
-            //     return sendErrorMessage(
-            //         statusCode.NOT_FOUND,
-            //         'No valid images were uploaded',
-            //         res
-            //     )
-            // }
 
             const _details = await User.findOneAndUpdate(
                 { email: email },

@@ -5,10 +5,10 @@ const { sendSuccessMessage, sendErrorMessage } = require('../../utils/messages')
 const { statusCode } = require('../../utils/statusCode')
 const Order = require('../../model/orders')
 
-const { upload } = require('../../utils/functions')
+const { upload, calculateDistance } = require('../../utils/functions')
 const { default: mongoose } = require('mongoose')
 
-router.post('/add', auth, upload.none(), async (req, res) => {
+router.post('/create', auth, upload.none(), async (req, res) => {
     try {
         const { dispensary_id, products, location_id, delivery_note } = req.body
         const missingFields = []
@@ -26,7 +26,11 @@ router.post('/add', auth, upload.none(), async (req, res) => {
         }
 
         let SaveObject = {
-            ...req.body,
+            dispensary_id,
+            products,
+            location_id,
+            delivery_note,
+            user_id: req?.user?.id,
             createdAt: Date.now(),
             updatedAt: Date.now(),
         }
@@ -128,60 +132,63 @@ router.patch('/update', auth, upload.none(), async (req, res) => {
 
 router.get('/', upload.none(), auth, async (req, res) => {
     try {
-        let query = {}
-
-        query = { user_id: mongoose.Types.ObjectId(req.user.id) }
-
-        const categoriesWithProducts = await Order.aggregate([
-            {
-                $match: query, // Match orders with the specified user_id (if provided)
-            },
-            {
-                $lookup: {
-                    from: 'products', // Replace 'products' with the actual name of the "Products" collection
-                    let: { OrderId: '$_id' },
-                    pipeline: [
-                        {
-                            $match: {
-                                $expr: { $eq: ['$Order', '$$OrderId'] },
-                            },
-                        },
-                        {
-                            $project: {
-                                name: 1,
-                                description: 1,
-                                amount: 1,
-                                quantity: 1,
-                                image: 1,
-                                Order: 1,
-                                dispensary: 1,
-                                // Add other fields you want to include from the "Product" collection
-                            },
-                        },
-                    ],
-                    as: 'products',
-                },
-            },
-            {
-                $project: {
-                    _id: 1,
-                    dispensary: '$dispensary',
-                    name: '$name', // Replace 'name' with the actual field name of the Order name in the "Order" collection
-                    products: 1,
-                },
-            },
-        ])
+        const userId = req.user.id
+        const orders = await Order.find({ user_id: userId })
+            .populate({
+                path: 'products.product',
+                model: 'Products', // Replace with the actual model name of the "Product" collection
+            })
+            .populate('location_id')
+            .populate('dispensary_id')
 
         sendSuccessMessage(
             statusCode.OK,
-            {
-                data: categoriesWithProducts,
-            },
-            'Categories and their products successfully fetched.',
+            orders,
+            'Orders history successfully fetched.asdasd',
             res
         )
     } catch (error) {
-        console.error(error)
+        return sendErrorMessage(statusCode.SERVER_ERROR, error.message, res)
+    }
+})
+
+// DRIVER API's
+
+router.get('/approved', upload.none(), auth, async (req, res) => {
+    try {
+        const orders = await Order.find({ order_status: false, approved: true })
+            .populate({
+                path: 'products.product',
+                model: 'Products',
+            })
+            .populate('location_id')
+            .populate('dispensary_id')
+            .populate({
+                path: 'user_id',
+                select: '-password -dob -license_image -userLocations -createdAt -updatedAt', // Exclude the password field
+            })
+
+        const ordersWithDistance = await Promise.all(
+            orders.map(async (order) => {
+                const distanceInMiles = calculateDistance(
+                    order.location_id.lat,
+                    order.location_id.lng,
+                    parseFloat(order.dispensary_id.latitude),
+                    parseFloat(order.dispensary_id.longitude)
+                )
+                return {
+                    ...order.toObject(), // Convert Mongoose document to plain object
+                    distance: distanceInMiles,
+                }
+            })
+        )
+        sendSuccessMessage(
+            statusCode.OK,
+            ordersWithDistance,
+            'Orders history successfully fetched.',
+            res
+        )
+    } catch (error) {
         return sendErrorMessage(statusCode.SERVER_ERROR, error.message, res)
     }
 })
