@@ -152,7 +152,7 @@ router.get('/', upload.none(), auth, async (req, res) => {
     }
 })
 
-// DRIVER API's
+// DRIVER API's APPROVED
 
 router.get('/approved', upload.none(), auth, async (req, res) => {
     try {
