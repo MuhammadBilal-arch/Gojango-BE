@@ -10,12 +10,21 @@ const { default: mongoose } = require('mongoose')
 
 router.post('/create', auth, upload.none(), async (req, res) => {
     try {
-        const { dispensary_id, products, location_id, delivery_note } = req.body
+        const {
+            dispensary_id,
+            products,
+            location_id,
+            delivery_note,
+            delivery_charges,
+            tax,
+        } = req.body
         const missingFields = []
         if (!dispensary_id) missingFields.push('dispensary_id')
         if (!products) missingFields.push('products')
         if (!location_id) missingFields.push('location_id')
         if (!delivery_note) missingFields.push('delivery_note')
+        if (!delivery_charges) missingFields.push('delivery_charges')
+        if (!tax) missingFields.push('tax')
 
         if (missingFields.length > 0) {
             return sendErrorMessage(
@@ -26,11 +35,13 @@ router.post('/create', auth, upload.none(), async (req, res) => {
         }
 
         let SaveObject = {
-            dispensary_id,
+            dispensary: dispensary_id,
             products,
-            location_id,
+            customer_location: location_id,
             delivery_note,
-            user_id: req?.user?.id,
+            customer: req?.user?.id,
+            delivery_charges,
+            tax,
             createdAt: Date.now(),
             updatedAt: Date.now(),
         }
@@ -138,13 +149,13 @@ router.get('/', upload.none(), auth, async (req, res) => {
                 path: 'products.product',
                 model: 'Products', // Replace with the actual model name of the "Product" collection
             })
-            .populate('location_id')
-            .populate('dispensary_id')
+            .populate('customer_location')
+            .populate('dispensary')
 
         sendSuccessMessage(
             statusCode.OK,
             orders,
-            'Orders history successfully fetched.asdasd',
+            'Orders history successfully fetched.',
             res
         )
     } catch (error) {
@@ -156,29 +167,32 @@ router.get('/', upload.none(), auth, async (req, res) => {
 
 router.get('/approved', upload.none(), auth, async (req, res) => {
     try {
+        const userLatitude = parseFloat(req?.query?.lat) // User's latitude
+        const userLongitude = parseFloat(req?.query?.long) // User's longitude
         const orders = await Order.find({ order_status: false, approved: true })
             .populate({
                 path: 'products.product',
                 model: 'Products',
+                select: '-amount -quantity -dispensary -createdAt -updatedAt', // Exclude the password field
             })
-            .populate('location_id')
-            .populate('dispensary_id')
+            .populate('customer_location')
+            .populate('dispensary')
             .populate({
-                path: 'user_id',
+                path: 'customer',
                 select: '-password -dob -license_image -userLocations -createdAt -updatedAt', // Exclude the password field
             })
 
         const ordersWithDistance = await Promise.all(
             orders.map(async (order) => {
                 const distanceInMiles = calculateDistance(
-                    order.location_id.lat,
-                    order.location_id.lng,
-                    parseFloat(order.dispensary_id.latitude),
-                    parseFloat(order.dispensary_id.longitude)
+                    userLatitude,
+                    userLongitude,
+                    parseFloat(order?.dispensary?.latitude),
+                    parseFloat(order?.dispensary?.longitude)
                 )
                 return {
                     ...order.toObject(), // Convert Mongoose document to plain object
-                    distance: distanceInMiles,
+                    distance: distanceInMiles?.toFixed(2),
                 }
             })
         )

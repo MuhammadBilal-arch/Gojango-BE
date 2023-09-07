@@ -210,7 +210,7 @@ router.get('/', async (req, res) => {
 
 router.get('/nearest', async (req, res) => {
     try {
-        console.log(req.query)
+
         const userLatitude = parseFloat(req.query.lat) // User's latitude
         const userLongitude = parseFloat(req.query.long) // User's longitude
         const radiusInMiles = 5 // Specify the desired radius in miles

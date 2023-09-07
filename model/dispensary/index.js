@@ -28,6 +28,9 @@ const dispensarySchema = mongoose.Schema({
     delivery_charges: {
         type: Number,
     },
+    tax: {
+        type: Number,
+    },
 
     delivery_time: {
         type: String,
