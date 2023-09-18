@@ -155,7 +155,7 @@ router.post('/login', async (req, res) => {
             const userWithoutData = populatedUser.toObject()
             delete userWithoutData.password
             if (userWithoutData.accountType === 'DISPENSARY') {
-                delete userWithoutData.userLocations;
+                delete userWithoutData.userLocations
             }
 
             sendSuccessMessage(
@@ -252,8 +252,7 @@ router.post('/google/userinfo', async (req, res) => {
             res.status(400).json({ error: 'Failed to fetch user information' })
         }
     } catch (error) {
-        console.error('Error fetching user information', error)
-        res.status(500).json({ error: 'Internal server error' })
+        return sendErrorMessage(statusCode.SERVER_ERROR, error.message, res)
     }
 })
 
@@ -580,35 +579,31 @@ router.post('/forgot-password', async (req, res) => {
     }
 })
 
-router.post('/reset-password',auth, async (req, res) => {
+router.post('/reset-password', auth, async (req, res) => {
     try {
-        const { currentPassword, newPassword, confirmPassword } = req.body;
-        const userId = req.user.id; // Assuming you have user authentication middleware
+        const { currentPassword, newPassword, confirmPassword } = req.body
+        const userId = req.user.id // Assuming you have user authentication middleware
 
         if (!currentPassword || !newPassword || !confirmPassword) {
             return sendErrorMessage(
                 statusCode.BAD_REQUEST,
                 'Required: Current Password, New Password, Confirm Password',
                 res
-            );
+            )
         }
 
-        const user = await User.findById(userId);
+        const user = await User.findById(userId)
         if (!user) {
-            return sendErrorMessage(
-                statusCode.NOT_FOUND,
-                'User not found',
-                res
-            );
+            return sendErrorMessage(statusCode.NOT_FOUND, 'User not found', res)
         }
 
-        const matched = await bcrypt.compare(currentPassword, user.password);
+        const matched = await bcrypt.compare(currentPassword, user.password)
         if (!matched) {
             return sendErrorMessage(
                 statusCode.UNAUTHORIZED,
                 'Current password is incorrect',
                 res
-            );
+            )
         }
 
         if (newPassword !== confirmPassword) {
@@ -616,12 +611,14 @@ router.post('/reset-password',auth, async (req, res) => {
                 statusCode.BAD_REQUEST,
                 'New Password and Confirm Password do not match',
                 res
-            );
+            )
         }
 
-        const hash = await bcrypt.hash(newPassword, 10);
+        const hash = await bcrypt.hash(newPassword, 10)
 
-        const passwordUpdated = await User.findByIdAndUpdate(userId, { password: hash });
+        const passwordUpdated = await User.findByIdAndUpdate(userId, {
+            password: hash,
+        })
 
         if (passwordUpdated) {
             sendSuccessMessage(
@@ -631,18 +628,21 @@ router.post('/reset-password',auth, async (req, res) => {
                 },
                 'Password updated successfully',
                 res
-            );
+            )
         } else {
             return sendErrorMessage(
                 statusCode.INTERNAL_SERVER_ERROR,
                 'Failed to update password',
                 res
-            );
+            )
         }
     } catch (error) {
-        return sendErrorMessage(statusCode.INTERNAL_SERVER_ERROR, error.message, res);
+        return sendErrorMessage(
+            statusCode.INTERNAL_SERVER_ERROR,
+            error.message,
+            res
+        )
     }
-});
-
+})
 
 module.exports = router
