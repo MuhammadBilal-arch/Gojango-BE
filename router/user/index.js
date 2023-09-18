@@ -12,6 +12,7 @@ const { sendEmail } = require('../../utils/email')
 const OTP = require('../../model/otp')
 const passport = require('passport')
 const fetch = require('node-fetch'); 
+const axios = require('axios')
 
 router.post('/register', async (req, res) => {
     try {
@@ -184,16 +185,16 @@ router.post('/google/userinfo', async (req, res) => {
     const { access_token, accountType } = req.body
 
     try {
-        const response = await fetch(
+        const response = await axios.get(
             'https://www.googleapis.com/oauth2/v1/userinfo',
             {
                 headers: {
                     Authorization: `Bearer ${access_token}`,
                 },
             }
-        )
+        );
 
-        if (response.ok) {
+        if (response?.status === 200) {
             const userInfo = await response.json()
             const userExist = await User.findOne({ email: userInfo?.email })
             if (userExist) {
