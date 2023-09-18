@@ -10,8 +10,7 @@ const { statusCode } = require('../../utils/statusCode')
 const { upload, generateOTP } = require('../../utils/functions')
 const { sendEmail } = require('../../utils/email')
 const OTP = require('../../model/otp')
-const passport = require('passport')
-const fetch = require('node-fetch'); 
+const passport = require('passport') 
 const axios = require('axios')
 
 router.post('/register', async (req, res) => {
@@ -195,7 +194,8 @@ router.post('/google/userinfo', async (req, res) => {
         );
 
         if (response?.status === 200) {
-            const userInfo = await response.json()
+            console.log('RESPONSE',response.data)
+            const userInfo = await response.data
             const userExist = await User.findOne({ email: userInfo?.email })
             if (userExist) {
                 sendSuccessMessage(
