@@ -1,25 +1,12 @@
 const mongoose = require('mongoose')
-
+const userLocation = require('../userLocations')
+const product = require('../products')
 const orderSchema = mongoose.Schema({
     dispensary: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Dispensary',
     },
-    products: [
-        {
-            product: {
-                type: mongoose.Schema.Types.ObjectId,
-                ref: 'Product',
-            },
-            quantity: {
-                type: Number,
-                default: 1,
-            },
-            amount: {
-                type: Number,
-            },
-        },
-    ],
+    products: [product.schema],
     customer: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'USER',
@@ -28,23 +15,41 @@ const orderSchema = mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'USER',
     },
-    customer_location: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'UserLocation',
-    },
+    customer_location: userLocation.schema,
     delivery_note: {
         type: String,
     },
-    approved: {
+    dispensary_approved: {
         type: Boolean,
         default: false,
     },
-    driver_status: {
-        type: String,
+    driver_assigned: {
+        type: Boolean,
+        default: false,
+    },
+    order_awaiting_pickup: {
+        type: Boolean,
+        default: false,
+    },
+    order_in_transit: {
+        type: Boolean,
+        default: false,
     },
     order_status: {
         type: Boolean,
+        default: true,
+    },
+    order_delivered: {
+        type: Boolean,
         default: false,
+    },
+    order_delivered_date: {
+        type: Date,
+        default: null,
+    },
+    order_cancellation_date: {
+        type: Date,
+        default: null,
     },
     tax: {
         type: Number,

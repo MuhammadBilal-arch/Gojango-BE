@@ -5,8 +5,7 @@ const { sendSuccessMessage, sendErrorMessage } = require('../../utils/messages')
 const { statusCode } = require('../../utils/statusCode')
 const UserLocations = require('../../model/userLocations')
 
-const { upload } = require('../../utils/functions')
-const { exists } = require('fs')
+const { upload } = require('../../utils/functions')  
 
 router.post('/create', auth, upload.none(), async (req, res) => {
     try {
@@ -120,7 +119,7 @@ router.patch('/update', auth, upload.none(), async (req, res) => {
             )
         }
 
-        const Exist = await UserLocations.findOne({ id, user_id: req.user.id })
+        const Exist = await UserLocations.findOne({ _id: id, user_id: req.user.id })
 
         if (!Exist) {
             return sendErrorMessage(

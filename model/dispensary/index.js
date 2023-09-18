@@ -10,14 +10,29 @@ const dispensarySchema = mongoose.Schema({
     image: {
         type: String,
     },
+    street: {
+        type: String,
+    },
+    state: {
+        type: String,
+    },
+    city: {
+        type: String,
+    },
+    zipCode: {
+        type: String,
+    },
+    unit: {
+        type: String,
+    },
     location: {
         type: String,
     },
     longitude: {
-        type: String,
+        type: Number,
     },
     latitude: {
-        type: String,
+        type: Number,
     },
     phone: {
         type: String,

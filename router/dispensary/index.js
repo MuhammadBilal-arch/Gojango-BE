@@ -6,6 +6,7 @@ const { sendSuccessMessage, sendErrorMessage } = require('../../utils/messages')
 const { statusCode } = require('../../utils/statusCode')
 const { upload, calculateDistance } = require('../../utils/functions')
 const Dispensary = require('../../model/dispensary')
+const User = require('../../model/user')
 
 router.post('/add', auth, upload.single('image'), async (req, res) => {
     try {
@@ -20,6 +21,8 @@ router.post('/add', auth, upload.single('image'), async (req, res) => {
             delivery_time,
             delivery_days,
             pickup_days,
+            email,
+            password,
         } = req.body
 
         const missingFields = []
@@ -29,12 +32,21 @@ router.post('/add', auth, upload.single('image'), async (req, res) => {
         if (!phone) missingFields.push('phone')
         if (!delivery_time) missingFields.push('delivery_time')
         if (!rating) missingFields.push('rating')
+        if (!password) missingFields.push('password')
         if (!req?.file) missingFields.push('image')
 
         if (missingFields.length > 0) {
             return sendErrorMessage(
                 statusCode.NOT_ACCEPTABLE,
                 `Missing fields: ${missingFields.join(' | ')}`,
+                res
+            )
+        }
+        const UserExist = await User.findOne({ email })
+        if (UserExist) {
+            return sendErrorMessage(
+                statusCode.NOT_ACCEPTABLE,
+                'Email already exist',
                 res
             )
         }
@@ -72,6 +84,13 @@ router.post('/add', auth, upload.single('image'), async (req, res) => {
         }
 
         const result = await Dispensary.create(SaveObject)
+        await User.create({
+            email,
+            password,
+            accountType: 'DISPENSARY',
+            dispensary: result?._id,
+        })
+        console.log(result)
         if (result) {
             sendSuccessMessage(
                 statusCode.OK,
@@ -122,7 +141,7 @@ router.patch('/update', auth, upload.single('image'), async (req, res) => {
             )
         }
 
-        const Exist = await Dispensary.findOne({ id })
+        const Exist = await Dispensary.findById(id)
 
         if (!Exist) {
             return sendErrorMessage(
@@ -138,16 +157,20 @@ router.patch('/update', auth, upload.single('image'), async (req, res) => {
             createdAt: Date.now(),
             updatedAt: Date.now(),
         }
-
         if (req?.file) {
             SaveObject = {
                 ...SaveObject,
                 image: req.file.path.replace(/\\/g, '/').split('public/')[1],
             }
         }
-        const result = await Dispensary.findByIdAndUpdate(id, SaveObject, {
-            new: true,
-        })
+        const result = await Dispensary.findByIdAndUpdate(
+            { _id: id },
+            SaveObject,
+            {
+                new: true,
+            }
+        )
+        console.log(result)
         if (result) {
             sendSuccessMessage(
                 statusCode.OK,
@@ -168,15 +191,7 @@ router.get('/', async (req, res) => {
         const userLat = parseFloat(req.query.lat) // Replace 'lat' with the key where you are sending user's latitude
         const userLon = parseFloat(req.query.long) // Replace 'long' with the key where you are sending user's longitude
 
-        const page = parseInt(req.query.page) || 1
-        const limit = parseInt(req.query.limit) || 10
-
-        const startIndex = (page - 1) * limit
-        const totalItems = await Dispensary.countDocuments({})
-        const dispensaries = await Dispensary.aggregate([
-            { $skip: startIndex },
-            { $limit: limit },
-        ])
+        const dispensaries = await Dispensary.find({}) // Retrieve all dispensaries
 
         // Calculate distance for each dispensary and add it to the result
         const dispensariesWithDistance = dispensaries.map((dispensary) => {
@@ -186,20 +201,15 @@ router.get('/', async (req, res) => {
                 dispensary.latitude,
                 dispensary.longitude
             )
-            return { ...dispensary, distance } // Add 'distance' property to each dispensary object
+            return { ...dispensary.toObject(), distance } // Add 'distance' property to each dispensary object
         })
 
         sendSuccessMessage(
             statusCode.OK,
             {
-                pagination: {
-                    totalItems,
-                    currentPage: page,
-                    totalPages: Math.ceil(totalItems / limit),
-                },
                 data: dispensariesWithDistance, // Use the modified array with distance included
             },
-            'Dispensaries successfully fetched.',
+            'All dispensaries successfully fetched.',
             res
         )
     } catch (error) {
@@ -210,7 +220,6 @@ router.get('/', async (req, res) => {
 
 router.get('/nearest', async (req, res) => {
     try {
-
         const userLatitude = parseFloat(req.query.lat) // User's latitude
         const userLongitude = parseFloat(req.query.long) // User's longitude
         const radiusInMiles = 5 // Specify the desired radius in miles
@@ -257,6 +266,49 @@ router.get('/nearest', async (req, res) => {
                 data: nearestDispensaries,
             },
             'Nearest dispensaries successfully fetched.',
+            res
+        )
+    } catch (error) {
+        return sendErrorMessage(statusCode.SERVER_ERROR, error.message, res)
+    }
+})
+
+router.post('/search', async (req, res) => {
+    try {
+        const searchAddress = req.body.search // User's search address from the request body
+
+        // Fetch all dispensaries from the database
+        const allDispensaries = await Dispensary.find({})
+
+        // Filter dispensaries based on the search address
+        const matchingDispensaries = allDispensaries.filter((dispensary) => {
+            // Check if any of the fields match the search address
+            const addressFields = [
+                dispensary.name,
+                dispensary.street,
+                dispensary.state,
+                dispensary.city,
+                dispensary.zipCode,
+                dispensary.unit,
+                dispensary.location,
+            ]
+
+            for (const field of addressFields) {
+                if (
+                    field &&
+                    field.toLowerCase().includes(searchAddress.toLowerCase())
+                ) {
+                    return true
+                }
+            }
+
+            return false
+        })
+
+        sendSuccessMessage(
+            statusCode.OK,
+            matchingDispensaries,
+            'Search results successfully fetched.',
             res
         )
     } catch (error) {

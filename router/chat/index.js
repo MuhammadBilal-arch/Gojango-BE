@@ -5,21 +5,12 @@ const User = require('../../model/user')
 const { sendErrorMessage, sendSuccessMessage } = require('../../utils/messages')
 const { statusCode } = require('../../utils/statusCode')
 const auth = require('../../middleware/auth')
+const { upload } = require('../../utils/functions')
 
 router.post('/create', auth, async (req, res) => {
     try {
-        const { senderEmail, receiverEmail, messages, attachments } = req.body 
-        const senderUser = await User.findOne({ email: senderEmail })
-        const receiverUser = await User.findOne({ email: receiverEmail }) 
-        if (!senderUser || !receiverUser) {
-            return sendErrorMessage(
-                statusCode.NOT_FOUND,
-                'One or both users not found',
-                res
-            )
-        }
-
-        const chat_id = `${senderEmail}${receiverEmail}`.split("").sort().join('')
+        const { chat_id } = req.body
+         
 
         const chatExist = await UserChat.findOne({ chat_id })
 
@@ -31,24 +22,15 @@ router.post('/create', auth, async (req, res) => {
             )
         }
 
-        const message = {
-            message_by: senderEmail,
-            message: messages[0].message,
-            DateAndTime: Date.now(),
-            attachments: messages[0]?.attachments,
-        }
-
         const _details = await UserChat.create({
             chat_id,
             is_seen: false,
-            emails: [{ email: senderEmail }, { email: receiverEmail }],
-            users: [senderUser._id, receiverUser._id], // Populate the users field
-            messages: [message],
+            messages: [],
             createdAt: Date.now(),
             updatedAt: Date.now(),
         })
 
-        req.app.locals.io.emit('message', message)
+        // req.app.locals.io.emit('message', message)
         res.json({
             message: 'Chat added successfully',
             data: _details,
@@ -58,30 +40,31 @@ router.post('/create', auth, async (req, res) => {
     }
 })
 
-router.patch('/update', auth, async (req, res) => {
-    const { chat_id, senderEmail, messages } = req.body
+router.patch('/update' ,upload.single('image'), auth, async (req, res) => {
+    const { chat_id, messages, sender_info  } = req.body
+ 
     try {
+        let Body = {
+            message_by: sender_info,
+            message: messages[0].message,
+            attachments: messages[0]?.attachments,
+            DateAndTime: Date.now(),
+        }
+        if(req.file)
+        {
+            Body.image = req.file.path.replace(/\\/g, '/').split('public/')[1]
+        }
         const _details = await UserChat.findOneAndUpdate(
             { chat_id: chat_id },
             {
                 $push: {
-                    messages: {
-                        message_by: senderEmail,
-                        message: messages[0].message,
-                        attachments: messages[0]?.attachments,
-                        DateAndTime: Date.now(),
-                    },
+                    messages: Body,
                 },
                 updatedAt: Date.now(),
             }
         )
         try {
-            req.app.locals.io.emit('message', {
-                message_by: senderEmail,
-                message: messages[0].message,
-                attachments: messages[0]?.attachments,
-                DateAndTime: Date.now(),
-            })
+            req.app.locals.io.to(chat_id).emit('message', Body)
         } catch (error) {
             console.error('Error emitting message:', error)
         }
@@ -97,14 +80,8 @@ router.patch('/update', auth, async (req, res) => {
 router.post('/id', auth, async (req, res) => {
     try {
         const { chat_id } = req.body
-
-        console.log('Received chat_id:', chat_id)
-
+ 
         const chatDetails = await UserChat.findOne({ chat_id })
-            .populate('users', 'fname lname email photo')
-            .exec()
-
-        console.log('Fetched chatDetails:', chatDetails)
 
         if (!chatDetails) {
             return sendErrorMessage(statusCode.NOT_FOUND, 'Chat not found', res)
@@ -123,8 +100,8 @@ router.post('/id', auth, async (req, res) => {
 
 router.delete('/delete', auth, async (req, res) => {
     try {
-        const { chat_id, email } = req.body
-        if (chat_id === undefined || email === undefined) {
+        const { chat_id } = req.body
+        if (chat_id === undefined) {
             return res.status(400).json({ error: 'Invalid data entered' })
         }
 

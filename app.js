@@ -59,7 +59,16 @@ app.use('/test', (req, res) => {
 })
 
 io.on('connection', (socket) => {
-    console.log(`Socket ${socket.id} connected`)
+    // console.log(`Socket ${socket.id} connected`)
+    socket.on('ChatRoom', (chatId) => {
+        console.log('Chat Room connected', chatId)
+        socket.join(chatId) // Join the room associated with the chat
+    })
+
+    socket.on('orderNotificationRoom', (user_id) => {
+        console.log('USER connected', user_id)
+        socket.join(user_id) // Join the room associated with the chat
+    })
 })
 
 server.listen(PORT, () => {

@@ -3,26 +3,29 @@ const router = express.Router()
 const auth = require('../../middleware/auth')
 const { sendSuccessMessage, sendErrorMessage } = require('../../utils/messages')
 const { statusCode } = require('../../utils/statusCode')
-const { upload } = require('../../utils/functions')
+const { upload, validateRequiredFields } = require('../../utils/functions')
 const Product = require('../../model/products')
 const { default: mongoose } = require('mongoose')
 
 router.post('/add', auth, upload.single('image'), async (req, res) => {
     try {
-        const { name, description, amount, quantity, dispensary, category } =
-            req.body
-        if (
-            !name ||
-            !description ||
-            !amount ||
-            !quantity ||
-            !dispensary ||
-            !category ||
-            !req?.file
-        ) {
+        // Usage
+        const requiredFields = [
+            'name',
+            'description',
+            'amount',
+            'quantity',
+            'dispensary',
+            'category',
+            'unit',
+        ]
+
+        validateRequiredFields(req, res, requiredFields)
+        const { name, dispensary, category } = req.body
+        if (!req?.file) {
             return sendErrorMessage(
                 statusCode.NOT_ACCEPTABLE,
-                'Required: name | description | amount | quantity | image | category | dispensary | image',
+                'Image missing "image"',
                 res
             )
         }
@@ -59,19 +62,14 @@ router.post('/add', auth, upload.single('image'), async (req, res) => {
             )
         }
     } catch (error) {
-        return sendErrorMessage(
-            statusCode.SERVER_ERROR,
-            error.message,
-            res
-        )
+        return sendErrorMessage(statusCode.SERVER_ERROR, error.message, res)
     }
 })
 
-router.delete('/delete', auth, async (req, res) => {
+router.delete('/delete', auth, upload.none(), async (req, res) => {
     try {
         const { id, dispensary, category } = req.body
-
-        const Exist = await Product.findOne({ id, dispensary, category })
+        const Exist = await Product.findOne({ _id: id, dispensary, category })
         if (!Exist) {
             return sendErrorMessage(
                 statusCode.NOT_ACCEPTABLE,
@@ -80,11 +78,7 @@ router.delete('/delete', auth, async (req, res) => {
             )
         }
         if (Exist) {
-            const _details = await Product.findOneAndDelete({
-                id,
-                dispensary,
-                category,
-            })
+            const _details = await Product.findByIdAndDelete(id)
             sendSuccessMessage(
                 statusCode.OK,
                 _details,
@@ -93,11 +87,7 @@ router.delete('/delete', auth, async (req, res) => {
             )
         }
     } catch (error) {
-        return sendErrorMessage(
-            statusCode.SERVER_ERROR,
-            error.message,
-            res
-        )
+        return sendErrorMessage(statusCode.SERVER_ERROR, error.message, res)
     }
 })
 
@@ -112,7 +102,7 @@ router.patch('/update', auth, upload.single('image'), async (req, res) => {
             )
         }
 
-        const Exist = await Product.findOne({ id, dispensary, category })
+        const Exist = await Product.findOne({ _id: id, dispensary, category })
 
         if (!Exist) {
             return sendErrorMessage(
@@ -138,7 +128,7 @@ router.patch('/update', auth, upload.single('image'), async (req, res) => {
             }
         }
         const result = await Product.findOneAndUpdate(
-            { id, dispensary, category },
+            { _id: id, dispensary, category },
             SaveObject,
             {
                 new: true,
@@ -159,11 +149,7 @@ router.patch('/update', auth, upload.single('image'), async (req, res) => {
             )
         }
     } catch (error) {
-        return sendErrorMessage(
-            statusCode.SERVER_ERROR,
-            error.message,
-            res
-        )
+        return sendErrorMessage(statusCode.SERVER_ERROR, error.message, res)
     }
 })
 
@@ -210,11 +196,35 @@ router.get('/', auth, upload.none(), async (req, res) => {
             )
         }
     } catch (error) {
-        return sendErrorMessage(
-            statusCode.SERVER_ERROR,
-            error.message,
-            res
-        )
+        return sendErrorMessage(statusCode.SERVER_ERROR, error.message, res)
+    }
+})
+
+router.get('/getbyid', auth, upload.none(), async (req, res) => {
+    try {
+        const { dispensary, category } = req.query
+        try {
+            const products = await Product.find({
+                dispensary,
+                category,
+            })
+
+            sendSuccessMessage(
+                statusCode.OK,
+                products,
+                'Products successfully fetched.',
+                res
+            )
+        } catch (error) {
+            console.error(error)
+            return sendErrorMessage(
+                statusCode.SERVER_ERROR,
+                'An error occurred while fetching products',
+                res
+            )
+        }
+    } catch (error) {
+        return sendErrorMessage(statusCode.SERVER_ERROR, error.message, res)
     }
 })
 

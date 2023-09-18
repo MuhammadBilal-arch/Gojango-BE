@@ -1,20 +1,35 @@
 const mongoose = require('mongoose')
 
-const messageSchema = mongoose.Schema({
-    message_by:{
+const senderSchema = mongoose.Schema({
+    fname: {
         type: String,
-        required: true,        
+        required: true,
     },
+    lname: {
+        type: String,
+        required: true,
+    },
+    email: {
+        type: String,
+        required: true,
+    },
+    sender_id: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'USER',
+    },
+})
+
+const messageSchema = mongoose.Schema({
+    message_by: senderSchema,
     message: {
         type: String,
         required: true,
     },
     attachments: {
-        video: String,
         image: String,
-        voice: String,
-        file: String
+        file: String,
     },
+    image: String,
     DateAndTime: {
         type: Date,
     },
@@ -27,13 +42,7 @@ const chat = mongoose.Schema({
     is_seen: {
         type: Boolean,
     },
-    emails:[{
-        email: String,
-    }],
-    users: [{
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'USER',
-    }],
+
     messages: [messageSchema],
     createdAt: {
         type: Date,

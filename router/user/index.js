@@ -11,6 +11,7 @@ const { upload, generateOTP } = require('../../utils/functions')
 const { sendEmail } = require('../../utils/email')
 const OTP = require('../../model/otp')
 const passport = require('passport')
+
 router.post('/register', async (req, res) => {
     try {
         const {
@@ -131,8 +132,9 @@ router.post('/login', async (req, res) => {
     try {
         const { email, password } = req.body
 
-        const user = await User.findOne({ email: email })
-        if (!user) {
+        let userQuery = await User.findOne({ email: email })
+
+        if (!userQuery) {
             return sendErrorMessage(
                 statusCode.NOT_FOUND,
                 "Account doesn't exist",
@@ -140,17 +142,27 @@ router.post('/login', async (req, res) => {
             )
         }
 
-        const matched = await user.matchPassword(password)
+        // Check if the user's accountType is DISPENSARY
+        if (userQuery.accountType === 'DISPENSARY') {
+            userQuery = userQuery.populate('dispensary')
+        }
+
+        // Execute the populated query
+        const populatedUser = await userQuery
+        const matched = await populatedUser.matchPassword(password)
 
         if (matched) {
-            const userWithoutPassword = user.toObject()
-            delete userWithoutPassword.password
+            const userWithoutData = populatedUser.toObject()
+            delete userWithoutData.password
+            if (userWithoutData.accountType === 'DISPENSARY') {
+                delete userWithoutData.userLocations;
+            }
 
             sendSuccessMessage(
                 statusCode.OK,
                 {
-                    ...userWithoutPassword,
-                    token: generateToken(user._id),
+                    ...userWithoutData,
+                    token: generateToken(populatedUser._id),
                 },
                 'Account successfully logged',
                 res
@@ -244,6 +256,7 @@ router.post('/google/userinfo', async (req, res) => {
         res.status(500).json({ error: 'Internal server error' })
     }
 })
+
 router.get(
     '/google',
     passport.authenticate('google', {
@@ -262,6 +275,7 @@ router.get(
 router.get('/login/failed', async (req, res) => {
     return sendErrorMessage(statusCode.NOT_FOUND, "Account doesn't exist", res)
 })
+
 router.get('/login/success', async (req, res) => {
     if (req.user) {
         sendSuccessMessage(
@@ -565,5 +579,70 @@ router.post('/forgot-password', async (req, res) => {
         return sendErrorMessage(statusCode.SERVER_ERROR, error.message, res)
     }
 })
+
+router.post('/reset-password',auth, async (req, res) => {
+    try {
+        const { currentPassword, newPassword, confirmPassword } = req.body;
+        const userId = req.user.id; // Assuming you have user authentication middleware
+
+        if (!currentPassword || !newPassword || !confirmPassword) {
+            return sendErrorMessage(
+                statusCode.BAD_REQUEST,
+                'Required: Current Password, New Password, Confirm Password',
+                res
+            );
+        }
+
+        const user = await User.findById(userId);
+        if (!user) {
+            return sendErrorMessage(
+                statusCode.NOT_FOUND,
+                'User not found',
+                res
+            );
+        }
+
+        const matched = await bcrypt.compare(currentPassword, user.password);
+        if (!matched) {
+            return sendErrorMessage(
+                statusCode.UNAUTHORIZED,
+                'Current password is incorrect',
+                res
+            );
+        }
+
+        if (newPassword !== confirmPassword) {
+            return sendErrorMessage(
+                statusCode.BAD_REQUEST,
+                'New Password and Confirm Password do not match',
+                res
+            );
+        }
+
+        const hash = await bcrypt.hash(newPassword, 10);
+
+        const passwordUpdated = await User.findByIdAndUpdate(userId, { password: hash });
+
+        if (passwordUpdated) {
+            sendSuccessMessage(
+                statusCode.OK,
+                {
+                    message: 'Password successfully updated',
+                },
+                'Password updated successfully',
+                res
+            );
+        } else {
+            return sendErrorMessage(
+                statusCode.INTERNAL_SERVER_ERROR,
+                'Failed to update password',
+                res
+            );
+        }
+    } catch (error) {
+        return sendErrorMessage(statusCode.INTERNAL_SERVER_ERROR, error.message, res);
+    }
+});
+
 
 module.exports = router

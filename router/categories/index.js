@@ -58,7 +58,7 @@ router.delete('/delete', auth, upload.none(), async (req, res) => {
     try {
         const { id, dispensary } = req.body
 
-        const Exist = await Category.findOne({ id: id, dispensary: dispensary })
+        const Exist = await Category.findOne({ _id: id, dispensary: dispensary })
         if (!Exist) {
             return sendErrorMessage(
                 statusCode.NOT_ACCEPTABLE,

@@ -56,6 +56,14 @@ const userSchema = mongoose.Schema({
     userLocations: [
         { type: mongoose.Schema.Types.ObjectId, ref: 'UserLocation' },
     ],
+    dispensary: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Dispensary',
+    },
+    receive_promotion_and_news: {
+        type: Boolean,
+        default: false,
+    },
     createdAt: {
         type: Date,
     },
