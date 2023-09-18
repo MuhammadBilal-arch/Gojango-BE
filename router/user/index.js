@@ -11,6 +11,7 @@ const { upload, generateOTP } = require('../../utils/functions')
 const { sendEmail } = require('../../utils/email')
 const OTP = require('../../model/otp')
 const passport = require('passport')
+const fetch = require('node-fetch'); 
 
 router.post('/register', async (req, res) => {
     try {
