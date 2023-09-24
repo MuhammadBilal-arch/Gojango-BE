@@ -47,9 +47,15 @@ const generateOTP = () => {
     return OTP
 }
 
-const sendStatusToCustomer = (req, user, orderId, statusMessage) => {
+const sendStatusToCustomer = (req, user, orderId, statusMessage) => {    
     req.app.locals.io
-        .to(user?._id?.toString())
+        .to(user?._id)
+        .emit('orderStatusUpdated', { orderId, status: statusMessage })
+}
+const sendStatusToDispensary = (req, user, orderId, statusMessage) => {    
+    console.log(user)
+    req.app.locals.io
+        .to(user.id.toString())
         .emit('orderStatusUpdated', { orderId, status: statusMessage })
 }
 
@@ -79,5 +85,6 @@ module.exports = {
     calculateDistance,
     generateOTP,
     sendStatusToCustomer,
-    validateRequiredFields
+    validateRequiredFields,
+    sendStatusToDispensary
 }

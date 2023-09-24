@@ -80,7 +80,7 @@ router.patch('/update' ,upload.single('image'), auth, async (req, res) => {
 router.post('/id', auth, async (req, res) => {
     try {
         const { chat_id } = req.body
- 
+        console.log(chat_id)
         const chatDetails = await UserChat.findOne({ chat_id })
 
         if (!chatDetails) {

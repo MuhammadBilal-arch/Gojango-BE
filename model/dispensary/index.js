@@ -1,5 +1,4 @@
-const mongoose = require('mongoose')
-
+const mongoose = require('mongoose') 
 const dispensarySchema = mongoose.Schema({
     name: {
         type: String,
@@ -50,6 +49,9 @@ const dispensarySchema = mongoose.Schema({
     delivery_time: {
         type: String,
     },
+    status: {
+        type: Boolean,
+    },
     delivery_days: [
         {
             name: String,
@@ -73,6 +75,7 @@ const dispensarySchema = mongoose.Schema({
         type: Date,
     },
 })
+
 
 const Dispensary = mongoose.model('Dispensary', dispensarySchema)
 

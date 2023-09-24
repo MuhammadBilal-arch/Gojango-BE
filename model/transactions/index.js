@@ -3,19 +3,19 @@ const mongoose = require('mongoose')
 const userPaymentSchema = mongoose.Schema(
     {
         dispensary_id: {
-            type: mongoose.Schema.Types.ObjectId,
+            type: mongoose.Schema.Types.Mixed,
             ref: 'Dispensary',
         },
         order_id: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: 'Order',
+            type: mongoose.Schema.Types.Mixed,
+            ref: 'Orders',
         },
         customer_id: {
-            type: mongoose.Schema.Types.ObjectId,
+            type: mongoose.Schema.Types.Mixed,
             ref: 'USER',
         },
         driver_id: {
-            type: mongoose.Schema.Types.ObjectId,
+            type: mongoose.Schema.Types.Mixed,
             ref: 'USER',
         },
         transaction_id: {

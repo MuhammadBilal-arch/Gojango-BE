@@ -64,9 +64,9 @@ io.on('connection', (socket) => {
         console.log('Chat Room connected', chatId)
         socket.join(chatId) // Join the room associated with the chat
     })
-
+   
     socket.on('orderNotificationRoom', (user_id) => {
-        console.log('USER connected', user_id)
+        console.log('USER connected : ', user_id)
         socket.join(user_id) // Join the room associated with the chat
     })
 })

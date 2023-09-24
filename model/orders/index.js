@@ -1,18 +1,19 @@
 const mongoose = require('mongoose')
+const AutoIncrement = require('mongoose-sequence')(mongoose)
 const userLocation = require('../userLocations')
 const product = require('../products')
 const orderSchema = mongoose.Schema({
     dispensary: {
-        type: mongoose.Schema.Types.ObjectId,
+        type: mongoose.Schema.Types.Mixed,
         ref: 'Dispensary',
     },
     products: [product.schema],
     customer: {
-        type: mongoose.Schema.Types.ObjectId,
+        type: mongoose.Schema.Types.Mixed,
         ref: 'USER',
     },
     driver: {
-        type: mongoose.Schema.Types.ObjectId,
+        type: mongoose.Schema.Types.Mixed,
         ref: 'USER',
     },
     customer_location: userLocation.schema,
@@ -43,6 +44,14 @@ const orderSchema = mongoose.Schema({
         type: Boolean,
         default: false,
     },
+    order_driver_accept_date: {
+        type: Date,
+        default: null,
+    },
+    order_pickup_date: {
+        type: Date,
+        default: null,
+    },
     order_delivered_date: {
         type: Date,
         default: null,
@@ -60,14 +69,37 @@ const orderSchema = mongoose.Schema({
     total_amount: {
         type: Number,
     },
+    sub_total: {
+        type: Number,
+    },
     createdAt: {
         type: Date,
     },
     updatedAt: {
         type: Date,
     },
+    order_id: {
+        type: Number,
+        unique: true,
+    },
 })
 
+orderSchema.pre('save', async function (next) {
+    if (!this.order_id) {
+        const Order = mongoose.model('Orders')
+        const lastOrder = await Order.findOne(
+            {},
+            {},
+            { sort: { order_id: -1 } }
+        )
+        if (lastOrder) {
+            this.order_id = lastOrder.order_id + 1
+        } else {
+            this.order_id = 1
+        }
+    }
+    next()
+})
 const Order = mongoose.model('Orders', orderSchema)
 
 module.exports = Order

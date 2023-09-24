@@ -1,4 +1,5 @@
 const mongoose = require('mongoose')
+const AutoIncrement = require('mongoose-sequence')(mongoose)
 const bcrypt = require('bcryptjs')
 
 const license = mongoose.Schema({
@@ -54,15 +55,19 @@ const userSchema = mongoose.Schema({
         type: String,
     },
     userLocations: [
-        { type: mongoose.Schema.Types.ObjectId, ref: 'UserLocation' },
+        { type: mongoose.Schema.Types.Mixed, ref: 'UserLocation' },
     ],
     dispensary: {
-        type: mongoose.Schema.Types.ObjectId,
+        type: mongoose.Schema.Types.Mixed,
         ref: 'Dispensary',
     },
     receive_promotion_and_news: {
         type: Boolean,
         default: false,
+    },
+    status: {
+        type: Boolean,
+        default: true,
     },
     createdAt: {
         type: Date,
@@ -70,7 +75,9 @@ const userSchema = mongoose.Schema({
     updatedAt: {
         type: Date,
     },
-})
+},{_id : false})
+
+userSchema.plugin(AutoIncrement, { inc_field: '_id' })
 
 userSchema.methods.matchPassword = async function (enteredPassword) {
     return await bcrypt.compare(enteredPassword, this.password)

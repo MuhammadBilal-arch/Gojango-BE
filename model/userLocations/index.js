@@ -2,7 +2,7 @@ const mongoose = require('mongoose')
 
 const userLocationSchema = mongoose.Schema({
     user_id: {
-        type: mongoose.Schema.Types.ObjectId,
+        type: mongoose.Schema.Types.Mixed,
         ref: 'USER',
     },
     street: {

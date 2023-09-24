@@ -164,7 +164,7 @@ router.get('/', auth, upload.none(), async (req, res) => {
             let query = {}
 
             if (dispensaryId) {
-                query = { dispensary: mongoose.Types.ObjectId(dispensaryId) }
+                query = { dispensary: dispensaryId }
             }
 
             const totalItems = await Product.countDocuments(query)

@@ -6,29 +6,26 @@ const { statusCode } = require('../../utils/statusCode')
 const Transaction = require('../../model/transactions')
 const moment = require('moment')
 const { upload } = require('../../utils/functions')
-const { default: mongoose } = require('mongoose')
 
 router.post('/', upload.none(), auth, async (req, res) => {
     try {
         const { customer_id, driver_id, order_id, dispensary_id } = req.body
         const query = {}
-        if (customer_id) query.customer_id = customer_id
-        if (driver_id) query.driver_id = driver_id
+        if (customer_id) query.customer_id = parseInt(customer_id)
+        if (driver_id) query.driver_id = parseInt(driver_id)
         if (order_id) query.order_id = order_id
         if (dispensary_id) query.dispensary_id = dispensary_id
-
-        const transactions = await Transaction.find(query)
-            .populate({
-                path: 'driver_id',
-                select: '-password -dob -license_image -userLocations -createdAt -updatedAt', // Exclude the password field
-            })
-            .populate({
-                path: 'customer_id',
-                select: '-password -dob -license_image -userLocations -createdAt -updatedAt', // Exclude the password field
-            })
-            .populate('dispensary_id')
-            .populate('order_id')
-
+        console.log(query)
+        const transactions = await Transaction.find(query).populate({
+            path: 'driver_id',
+            select: '-password -dob -license_image -userLocations -createdAt -updatedAt', // Exclude the password field
+        })
+        .populate({
+            path: 'customer_id',
+            select: '-password -dob -license_image -userLocations -createdAt -updatedAt', // Exclude the password field
+        })
+        .populate('dispensary_id')
+        .populate('order_id') 
         sendSuccessMessage(
             statusCode.OK,
             transactions,
@@ -46,8 +43,7 @@ router.post('/revenue', upload.none(), auth, async (req, res) => {
         const matchStage = { $match: {} }
 
         if (dispensary_id) {
-            matchStage.$match.dispensary_id =
-                mongoose.Types.ObjectId(dispensary_id)
+            matchStage.$match.dispensary_id = dispensary_id
         }
 
         const sevenDaysAgo = moment().subtract(7, 'days').toDate()
@@ -55,7 +51,7 @@ router.post('/revenue', upload.none(), auth, async (req, res) => {
         const startOfLastMonth = moment()
             .subtract(1, 'month')
             .startOf('month')
-            .toDate() 
+            .toDate()
         const revenueStats = await Transaction.aggregate([
             matchStage,
             {
@@ -77,6 +73,7 @@ router.post('/revenue', upload.none(), auth, async (req, res) => {
                 $project: {
                     _id: 0,
                     last7DaysRevenue: 1,
+                    totalItems: 1,
                 },
             },
         ])
@@ -129,6 +126,7 @@ router.post('/revenue', upload.none(), auth, async (req, res) => {
                 $project: {
                     _id: 0,
                     currentMonthRevenue: 1,
+                    totalItems: 1,
                 },
             },
         ])
@@ -150,7 +148,7 @@ router.post('/revenue', upload.none(), auth, async (req, res) => {
                             date: '$createdAt',
                         },
                     },
-                    dailyRevenue: { $sum: '$amount' }, 
+                    dailyRevenue: { $sum: '$amount' },
                 },
             },
             {
@@ -181,6 +179,7 @@ router.post('/revenue', upload.none(), auth, async (req, res) => {
                 $project: {
                     _id: 0,
                     lastMonthRevenue: 1,
+                    totalItems: 1,
                 },
             },
         ])
@@ -216,7 +215,6 @@ router.post('/revenue', upload.none(), auth, async (req, res) => {
         const daysInMonth = moment(currentDate).daysInMonth()
         const revenueArray = Array.from({ length: daysInMonth }, () => 0)
 
-        // Populate the array with daily revenue data where available
         currentMonthStatsChart.forEach((day) => {
             const date = moment(day._id, 'YYYY-MM-DD').date() - 1
             revenueArray[date] = day.dailyRevenue
@@ -253,10 +251,18 @@ router.post('/revenue', upload.none(), auth, async (req, res) => {
         sendSuccessMessage(
             statusCode.OK,
             {
+                last7DaysSalesVolume: revenueStats[0]?.totalItems || 0,
                 last7DaysRevenue: revenueStats[0]?.last7DaysRevenue || 0,
+
+                currentMonthSalesVolume: revenueStats[0]?.totalItems || 0,
+
                 currentMonthRevenue:
                     currentMonthStats[0]?.currentMonthRevenue || 0,
+
                 lastMonthRevenue: lastMonthStats[0]?.lastMonthRevenue || 0,
+
+                lastMonthSalesVolume: revenueStats[0]?.totalItems || 0,
+
                 last7DaysChart: last7DaysArray,
                 currentMonthChart: revenueArray,
                 lastMonthChart: lastMonthArray,

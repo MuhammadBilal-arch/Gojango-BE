@@ -117,7 +117,6 @@ router.delete('/delete-all', auth, upload.none(), async (req, res) => {
 
 router.get('/', upload.none(), auth, async (req, res) => {
     try {
-        console.log('API CALLED')
         const userId = req.user.id
         const cartItems = await Cart.find({ user_id: userId }).populate(
             'product_id'

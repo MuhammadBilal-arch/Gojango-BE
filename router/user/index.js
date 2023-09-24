@@ -10,7 +10,7 @@ const { statusCode } = require('../../utils/statusCode')
 const { upload, generateOTP } = require('../../utils/functions')
 const { sendEmail } = require('../../utils/email')
 const OTP = require('../../model/otp')
-const passport = require('passport') 
+const passport = require('passport')
 const axios = require('axios')
 
 router.post('/register', async (req, res) => {
@@ -133,7 +133,7 @@ router.post('/login', async (req, res) => {
     try {
         const { email, password } = req.body
 
-        let userQuery = await User.findOne({ email: email })
+        let userQuery = await User.findOne({ email: email?.toLowerCase() })
 
         if (!userQuery) {
             return sendErrorMessage(
@@ -143,12 +143,10 @@ router.post('/login', async (req, res) => {
             )
         }
 
-        // Check if the user's accountType is DISPENSARY
         if (userQuery.accountType === 'DISPENSARY') {
             userQuery = userQuery.populate('dispensary')
         }
 
-        // Execute the populated query
         const populatedUser = await userQuery
         const matched = await populatedUser.matchPassword(password)
 
@@ -191,10 +189,10 @@ router.post('/google/userinfo', async (req, res) => {
                     Authorization: `Bearer ${access_token}`,
                 },
             }
-        );
+        )
 
         if (response?.status === 200) {
-            console.log('RESPONSE',response.data)
+            console.log('RESPONSE', response.data)
             const userInfo = await response.data
             const userExist = await User.findOne({ email: userInfo?.email })
             if (userExist) {
@@ -638,6 +636,34 @@ router.post('/reset-password', auth, async (req, res) => {
                 res
             )
         }
+    } catch (error) {
+        return sendErrorMessage(
+            statusCode.INTERNAL_SERVER_ERROR,
+            error.message,
+            res
+        )
+    }
+})
+
+router.post('/users', auth, async (req, res) => {
+    try {
+        const { accountType } = req.body
+        let users = {}
+        if (accountType === 'DISPENSARY') {
+            users = await User.find({ accountType }).populate('dispensary')
+        } else {
+            users = await User.find({ accountType })
+        }
+        if (!users) {
+            return sendErrorMessage(statusCode.NOT_FOUND, 'No users found', res)
+        }
+
+        sendSuccessMessage(
+            statusCode.OK,
+            users,
+            'Password updated successfully',
+            res
+        )
     } catch (error) {
         return sendErrorMessage(
             statusCode.INTERNAL_SERVER_ERROR,

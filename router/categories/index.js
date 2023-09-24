@@ -91,7 +91,7 @@ router.patch('/update', auth, upload.none(), async (req, res) => {
             )
         }
 
-        const Exist = await Category.findOne({ id })
+        const Exist = await Category.findById(id)
 
         if (!Exist) {
             return sendErrorMessage(
@@ -169,7 +169,7 @@ router.get('/', upload.none(), async (req, res) => {
         let query = {}
 
         if (dispensaryId) {
-            query = { dispensary: mongoose.Types.ObjectId(dispensaryId) }
+            query = { dispensary: dispensaryId }
         }
         const categoriesWithProducts = await Category.aggregate([
             {

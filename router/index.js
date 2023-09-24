@@ -8,6 +8,8 @@ const userPaymentController = require('./transactions')
 const ordersController = require('./orders')
 const chatController = require('./chat')
 const cartController = require('./cart')
+const taxController = require('./taxes')
+const notificationController = require('./notifications')
 
 //All routes
 router.use('/account', userController)
@@ -19,5 +21,7 @@ router.use('/transaction', userPaymentController)
 router.use('/order', ordersController)
 router.use('/chat', chatController)
 router.use('/cart', cartController)
+router.use('/tax', taxController)
+router.use('/notification', notificationController)
 
 module.exports = router

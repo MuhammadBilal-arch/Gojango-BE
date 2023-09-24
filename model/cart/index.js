@@ -2,15 +2,15 @@ const mongoose = require('mongoose')
 
 const cartSchema = mongoose.Schema({
     user_id: {
-        type: mongoose.Schema.Types.ObjectId,
+        type: mongoose.Schema.Types.Mixed,
         ref: 'USER',
     },
     product_id:{
-        type: mongoose.Schema.Types.ObjectId,
+        type: mongoose.Schema.Types.Mixed,
         ref: 'Products',
     },
     dispensary_id:{
-        type: mongoose.Schema.Types.ObjectId,
+        type: mongoose.Schema.Types.Mixed,
         ref: 'Dispensary',
     },
     quantity: {

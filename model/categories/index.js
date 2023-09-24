@@ -5,7 +5,7 @@ const categorySchema = mongoose.Schema({
         type: String,
     },
     dispensary: {
-        type: mongoose.Schema.Types.ObjectId,
+        type: mongoose.Schema.Types.Mixed,
         ref: 'Dispensary',
       },
     createdAt: {

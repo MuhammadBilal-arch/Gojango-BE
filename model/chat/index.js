@@ -14,7 +14,7 @@ const senderSchema = mongoose.Schema({
         required: true,
     },
     sender_id: {
-        type: mongoose.Schema.Types.ObjectId,
+        type: mongoose.Schema.Types.Mixed,
         ref: 'USER',
     },
 })

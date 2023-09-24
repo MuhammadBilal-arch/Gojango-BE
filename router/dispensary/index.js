@@ -19,10 +19,16 @@ router.post('/add', auth, upload.single('image'), async (req, res) => {
             latitude,
             rating,
             delivery_time,
-            delivery_days,
+            status,
+            // delivery_days,
             pickup_days,
             email,
             password,
+            city,
+            state,
+            street,
+            unit,
+            zipCode,
         } = req.body
 
         const missingFields = []
@@ -34,6 +40,11 @@ router.post('/add', auth, upload.single('image'), async (req, res) => {
         if (!rating) missingFields.push('rating')
         if (!password) missingFields.push('password')
         if (!req?.file) missingFields.push('image')
+        if (!city) missingFields.push('city')
+        if (!state) missingFields.push('state')
+        if (!unit) missingFields.push('unit')
+        if (!street) missingFields.push('street')
+        if (!status) missingFields.push('status')
 
         if (missingFields.length > 0) {
             return sendErrorMessage(
@@ -70,12 +81,19 @@ router.post('/add', auth, upload.single('image'), async (req, res) => {
             latitude,
             rating,
             delivery_time,
-            delivery_days,
+            city,
+            state,
+            street,
+            unit,
+            zipCode,
+            status,
+
+            // delivery_days,
             pickup_days,
             createdAt: Date.now(),
             updatedAt: Date.now(),
         }
-
+        console.log(req.file)
         if (req?.file) {
             SaveObject = {
                 ...SaveObject,
@@ -84,17 +102,17 @@ router.post('/add', auth, upload.single('image'), async (req, res) => {
         }
 
         const result = await Dispensary.create(SaveObject)
-        await User.create({
+        const account = await User.create({
             email,
             password,
             accountType: 'DISPENSARY',
             dispensary: result?._id,
         })
-        console.log(result)
+        const user = await User.findOne({ email: email }).populate('dispensary')
         if (result) {
             sendSuccessMessage(
                 statusCode.OK,
-                result,
+                user,
                 'Dispensary successfully created.',
                 res
             )
@@ -169,8 +187,7 @@ router.patch('/update', auth, upload.single('image'), async (req, res) => {
             {
                 new: true,
             }
-        )
-        console.log(result)
+        ) 
         if (result) {
             sendSuccessMessage(
                 statusCode.OK,
