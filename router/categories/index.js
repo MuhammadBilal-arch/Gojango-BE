@@ -4,10 +4,8 @@ const auth = require('../../middleware/auth')
 const { sendSuccessMessage, sendErrorMessage } = require('../../utils/messages')
 const { statusCode } = require('../../utils/statusCode')
 const Category = require('../../model/categories')
-const Product = require('../../model/products')
 
 const { upload } = require('../../utils/functions')
-const { default: mongoose } = require('mongoose')
 
 router.post('/add', auth, upload.none(), async (req, res) => {
     try {
@@ -22,6 +20,8 @@ router.post('/add', auth, upload.none(), async (req, res) => {
         }
 
         const Exist = await Category.findOne({ name, dispensary })
+            .sort({ position: -1 })
+            .exec()
 
         if (Exist) {
             return sendErrorMessage(
@@ -31,9 +31,14 @@ router.post('/add', auth, upload.none(), async (req, res) => {
             )
         }
 
+        const lastCategory = await Category.findOne({ dispensary })
+            .sort({ position: -1 })
+            .exec() 
+        const newPosition = lastCategory ? lastCategory?.position + 1 : 1 
         let SaveObject = {
             name: name,
             dispensary: dispensary,
+            position: newPosition,
             createdAt: Date.now(),
             updatedAt: Date.now(),
         }
@@ -58,7 +63,10 @@ router.delete('/delete', auth, upload.none(), async (req, res) => {
     try {
         const { id, dispensary } = req.body
 
-        const Exist = await Category.findOne({ _id: id, dispensary: dispensary })
+        const Exist = await Category.findOne({
+            _id: id,
+            dispensary: dispensary,
+        })
         if (!Exist) {
             return sendErrorMessage(
                 statusCode.NOT_ACCEPTABLE,

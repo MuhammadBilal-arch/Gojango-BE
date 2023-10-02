@@ -41,8 +41,7 @@ router.post('/add', auth, upload.single('image'), async (req, res) => {
         if (!password) missingFields.push('password')
         if (!req?.file) missingFields.push('image')
         if (!city) missingFields.push('city')
-        if (!state) missingFields.push('state')
-        if (!unit) missingFields.push('unit')
+        if (!state) missingFields.push('state') 
         if (!street) missingFields.push('street')
         if (!status) missingFields.push('status')
 
@@ -93,7 +92,9 @@ router.post('/add', auth, upload.single('image'), async (req, res) => {
             createdAt: Date.now(),
             updatedAt: Date.now(),
         }
-        console.log(req.file)
+        if (unit) {
+            SaveObject.unit = unit
+        }
         if (req?.file) {
             SaveObject = {
                 ...SaveObject,
@@ -187,7 +188,7 @@ router.patch('/update', auth, upload.single('image'), async (req, res) => {
             {
                 new: true,
             }
-        ) 
+        )
         if (result) {
             sendSuccessMessage(
                 statusCode.OK,
