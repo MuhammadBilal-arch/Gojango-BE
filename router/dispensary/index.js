@@ -41,7 +41,7 @@ router.post('/add', auth, upload.single('image'), async (req, res) => {
         if (!password) missingFields.push('password')
         if (!req?.file) missingFields.push('image')
         if (!city) missingFields.push('city')
-        if (!state) missingFields.push('state') 
+        if (!state) missingFields.push('state')
         if (!street) missingFields.push('street')
         if (!status) missingFields.push('status')
 
@@ -209,7 +209,7 @@ router.get('/', async (req, res) => {
         const userLat = parseFloat(req.query.lat) // Replace 'lat' with the key where you are sending user's latitude
         const userLon = parseFloat(req.query.long) // Replace 'long' with the key where you are sending user's longitude
 
-        const dispensaries = await Dispensary.find({}) // Retrieve all dispensaries
+        const dispensaries = await Dispensary.find({ status: true }) // Retrieve all dispensaries
 
         // Calculate distance for each dispensary and add it to the result
         const dispensariesWithDistance = dispensaries.map((dispensary) => {
@@ -251,7 +251,7 @@ router.get('/nearest', async (req, res) => {
         }
 
         // Fetch all dispensaries from the database
-        const allDispensaries = await Dispensary.find({})
+        const allDispensaries = await Dispensary.find({status: true})
 
         // Calculate the distance for each dispensary and add it to the object
         const dispensariesWithDistance = allDispensaries.map((dispensary) => {
@@ -296,7 +296,7 @@ router.post('/search', async (req, res) => {
         const searchAddress = req.body.search // User's search address from the request body
 
         // Fetch all dispensaries from the database
-        const allDispensaries = await Dispensary.find({})
+        const allDispensaries = await Dispensary.find({status: true})
 
         // Filter dispensaries based on the search address
         const matchingDispensaries = allDispensaries.filter((dispensary) => {
