@@ -82,6 +82,10 @@ const orderSchema = mongoose.Schema({
         type: Number,
         unique: true,
     },
+    driver_location: {
+        lat: Number,
+        lng: Number,
+    },
 })
 
 orderSchema.pre('save', async function (next) {

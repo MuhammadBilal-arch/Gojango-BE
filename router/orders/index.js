@@ -444,6 +444,242 @@ router.get('/approved', upload.none(), auth, async (req, res) => {
     }
 })
 
+router.post('/update-order', auth, upload.none(), async (req, res) => {
+    try {
+        const { id } = req.body
+        if (!id) {
+            return sendErrorMessage(
+                statusCode.NOT_ACCEPTABLE,
+                'Required: id',
+                res
+            )
+        }
+
+        const Exist = await Order.findOne({ _id: id })
+            .populate(
+                'driver',
+                '-password -dob -license_image -userLocations -createdAt -updatedAt'
+            )
+            .populate(
+                'customer',
+                '-password -dob -license_image -userLocations -createdAt -updatedAt'
+            )
+            .populate('dispensary')
+
+        if (!Exist) {
+            return sendErrorMessage(
+                statusCode.NOT_ACCEPTABLE,
+                'Invalid Order id',
+                res
+            )
+        }
+
+        const clone = { ...req.body }
+        delete clone.id
+
+        const updatedFields = {
+            ...clone,
+            updatedAt: Date.now(),
+        }
+        if (req.body.lat && req.body.lng) {
+            updatedFields.driver_location = {
+                lat: parseFloat(req.body.lat),
+                lng: parseFloat(req.body.lng),
+            }
+        }
+
+        if ('order_status' in req.body) {
+            const orderStatus =
+                req.body.order_status === 'true' ||
+                req.body.order_status === true
+            if (!orderStatus) {
+                await Notification.create({
+                    status: 'Order Cancelled',
+                    message: `Order (ID${Exist?.order_id}) status changed to 'Order Cancelled'`,
+                })
+                sendStatusToCustomer(
+                    req,
+                    Exist.customer,
+                    Exist.order_id,
+                    `Order Cancelled`
+                )
+                if (Exist.driver) {
+                    sendStatusToCustomer(
+                        req,
+                        Exist.driver,
+                        Exist.order_id,
+                        `Order Cancelled`
+                    )
+                }
+
+                sendStatusToDispensary(
+                    req,
+                    Exist.dispensary,
+                    Exist.order_id,
+                    `Order Cancelled`
+                )
+            }
+        }
+
+        const awaitingPickup =
+            req.body.order_awaiting_pickup === 'true' ||
+            req.body.order_awaiting_pickup === true
+        const driverAssigned =
+            req.body.driver_assigned === 'true' ||
+            req.body.driver_assigned === true
+        const dispensaryApproved =
+            req.body.dispensary_approved === 'true' ||
+            req.body.dispensary_approved === true
+        const inTransit =
+            req.body.order_in_transit === 'true' ||
+            req.body.order_in_transit === true
+        const delivered =
+            req.body.order_delivered === 'true' ||
+            req.body.order_delivered === true
+
+        if (driverAssigned) {
+            updatedFields.order_driver_accept_date = new Date()
+            await Transaction.findOneAndUpdate(
+                { order_id: Exist.order_id },
+                {
+                    driver_id: parseInt(req?.body?.driver),
+                }
+            )
+        }
+        if (awaitingPickup) {
+            updatedFields.order_pickup_date = new Date()
+        }
+        if (delivered) {
+            updatedFields.order_delivered_date = new Date()
+        }
+        if (!req.body.order_status) {
+            updatedFields.order_cancellation_date = new Date()
+        }
+        console.log(Exist?.order_status)
+        if (Exist?.order_status) {
+            if (dispensaryApproved) {
+                await Notification.create({
+                    status: 'Dispensary Approved',
+                    message: `Order (ID${Exist?.order_id}) status 'Dispensary Approved'`,
+                })
+                sendStatusToCustomer(
+                    req,
+                    Exist?.customer,
+                    Exist.order_id,
+                    `Order Placed`
+                )
+                sendStatusToDispensary(
+                    req,
+                    Exist.dispensary,
+                    Exist.order_id,
+                    `Driver Assigned`
+                )
+            } else if (driverAssigned) {
+                await Notification.create({
+                    status: 'Driver Assigned',
+                    message: `Order (ID${Exist?.order_id}) status changed to 'Driver Assigned'`,
+                })
+                sendStatusToCustomer(
+                    req,
+                    Exist.customer,
+                    Exist.order_id,
+                    `Driver Assigned`
+                )
+                sendStatusToDispensary(
+                    req,
+                    Exist.dispensary,
+                    Exist.order_id,
+                    `Driver Assigned`
+                )
+            } else if (awaitingPickup) {
+                // send this message to customer for Awaiting Pickup
+                sendStatusToCustomer(
+                    req,
+                    Exist.customer,
+                    Exist.order_id,
+                    `Awaiting Pickup`
+                )
+                sendStatusToDispensary(
+                    req,
+                    Exist.dispensary,
+                    Exist.order_id,
+                    `Awaiting Pickup`
+                )
+                await Notification.create({
+                    status: 'Awaiting Pickup',
+                    message: `Order (ID${Exist?.order_id}) status changed to 'Awaiting Pickup'`,
+                })
+            } else if (inTransit) {
+                // send this message to customer for In Transit
+                await Notification.create({
+                    status: 'In Transit',
+                    message: `Order (ID${Exist?.order_id}) status changed to 'In Transit'`,
+                })
+                sendStatusToCustomer(
+                    req,
+                    Exist.customer,
+                    Exist.order_id,
+                    `In Transit`
+                )
+                sendStatusToDispensary(
+                    req,
+                    Exist.dispensary,
+                    Exist.order_id,
+                    `In Transit`
+                )
+            }
+        } else if (delivered) {
+            await Notification.create({
+                status: 'Order Delivered',
+                message: `Order (ID${Exist?.order_id}) status changed to 'Order Delivered'`,
+            })
+            // send this message to customer for Delivered
+            sendStatusToCustomer(
+                req,
+                Exist.customer,
+                Exist.order_id,
+                `Order Delivered`
+            )
+            sendStatusToDispensary(
+                req,
+                Exist.dispensary,
+                Exist.order_id,
+                `Order Delivered`
+            )
+        }
+
+        const result = await Order.findByIdAndUpdate(id, updatedFields, {
+            new: true,
+        })
+            .populate(
+                'driver',
+                '-password -dob -license_image -userLocations -createdAt -updatedAt'
+            )
+            .populate(
+                'customer',
+                '-password -dob -license_image -userLocations -createdAt -updatedAt'
+            )
+            .populate('dispensary')
+
+        if (result) {
+            sendSuccessMessage(
+                statusCode.OK,
+                result,
+                'Order successfully updated.',
+                res
+            )
+        } else {
+            return sendErrorMessage(
+                statusCode.SERVER_ERROR,
+                'Invalid data',
+                res
+            )
+        }
+    } catch (error) {
+        return sendErrorMessage(statusCode.SERVER_ERROR, error.message, res)
+    }
+})
+
 // GET DISPENSARY ORDERS
 router.get('/getbyid', upload.none(), auth, async (req, res) => {
     const { id } = req.query
