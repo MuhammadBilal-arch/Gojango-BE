@@ -180,6 +180,13 @@ router.patch('/update', auth, upload.none(), async (req, res) => {
             ...clone,
             updatedAt: Date.now(),
         }
+        if (req.body.lat && req.body.lng) {
+            updatedFields.driver_location = {
+                lat: parseFloat(req.body.lat),
+                lng: parseFloat(req.body.lng),
+            }
+        }
+
         if ('order_status' in req.body) {
             const orderStatus =
                 req.body.order_status === 'true' ||
@@ -213,9 +220,6 @@ router.patch('/update', auth, upload.none(), async (req, res) => {
             }
         }
 
-        const awaitingPickup =
-            req.body.order_awaiting_pickup === 'true' ||
-            req.body.order_awaiting_pickup === true
         const driverAssigned =
             req.body.driver_assigned === 'true' ||
             req.body.driver_assigned === true
@@ -230,6 +234,7 @@ router.patch('/update', auth, upload.none(), async (req, res) => {
             req.body.order_delivered === true
 
         if (driverAssigned) {
+            updatedFields.order_awaiting_pickup = true
             updatedFields.order_driver_accept_date = new Date()
             await Transaction.findOneAndUpdate(
                 { order_id: Exist.order_id },
@@ -237,17 +242,16 @@ router.patch('/update', auth, upload.none(), async (req, res) => {
                     driver_id: parseInt(req?.body?.driver),
                 }
             )
-        }
-        if (awaitingPickup) {
             updatedFields.order_pickup_date = new Date()
         }
+
         if (delivered) {
             updatedFields.order_delivered_date = new Date()
         }
         if (!req.body.order_status) {
             updatedFields.order_cancellation_date = new Date()
         }
-        console.log(Exist?.order_status)
+
         if (Exist?.order_status) {
             if (dispensaryApproved) {
                 await Notification.create({
@@ -269,39 +273,22 @@ router.patch('/update', auth, upload.none(), async (req, res) => {
             } else if (driverAssigned) {
                 await Notification.create({
                     status: 'Driver Assigned',
-                    message: `Order (ID${Exist?.order_id}) status changed to 'Driver Assigned'`,
-                })
-                sendStatusToCustomer(
-                    req,
-                    Exist.customer,
-                    Exist.order_id,
-                    `Driver Assigned`
-                )
-                sendStatusToDispensary(
-                    req,
-                    Exist.dispensary,
-                    Exist.order_id,
-                    `Driver Assigned`
-                )
-            } else if (awaitingPickup) {
-                // send this message to customer for Awaiting Pickup
-                sendStatusToCustomer(
-                    req,
-                    Exist.customer,
-                    Exist.order_id,
-                    `Awaiting Pickup`
-                )
-                sendStatusToDispensary(
-                    req,
-                    Exist.dispensary,
-                    Exist.order_id,
-                    `Awaiting Pickup`
-                )
-                await Notification.create({
-                    status: 'Awaiting Pickup',
                     message: `Order (ID${Exist?.order_id}) status changed to 'Awaiting Pickup'`,
                 })
+                sendStatusToCustomer(
+                    req,
+                    Exist.customer,
+                    Exist.order_id,
+                    `Driver Assigned`
+                )
+                sendStatusToDispensary(
+                    req,
+                    Exist.dispensary,
+                    Exist.order_id,
+                    `Driver Assigned`
+                )
             } else if (inTransit) {
+                updatedFields.order_awaiting_pickup = false
                 // send this message to customer for In Transit
                 await Notification.create({
                     status: 'In Transit',
@@ -398,15 +385,18 @@ router.get('/', upload.none(), auth, async (req, res) => {
     }
 })
 
-// DRIVER API's APPROVED
+// DRIVER SIDE MOBILE
 
 router.get('/approved', upload.none(), auth, async (req, res) => {
     try {
         const userLatitude = parseFloat(req?.query?.lat) // User's latitude
         const userLongitude = parseFloat(req?.query?.long) // User's longitude
+        const driverId = req.user.id
         const orders = await Order.find({
             order_status: true,
             dispensary_approved: true,
+            order_delivered: false,
+            driver_assigned: false,
         })
 
             .populate('dispensary')
@@ -521,9 +511,6 @@ router.post('/update-order', auth, upload.none(), async (req, res) => {
             }
         }
 
-        const awaitingPickup =
-            req.body.order_awaiting_pickup === 'true' ||
-            req.body.order_awaiting_pickup === true
         const driverAssigned =
             req.body.driver_assigned === 'true' ||
             req.body.driver_assigned === true
@@ -538,6 +525,7 @@ router.post('/update-order', auth, upload.none(), async (req, res) => {
             req.body.order_delivered === true
 
         if (driverAssigned) {
+            updatedFields.order_awaiting_pickup = true
             updatedFields.order_driver_accept_date = new Date()
             await Transaction.findOneAndUpdate(
                 { order_id: Exist.order_id },
@@ -545,17 +533,16 @@ router.post('/update-order', auth, upload.none(), async (req, res) => {
                     driver_id: parseInt(req?.body?.driver),
                 }
             )
-        }
-        if (awaitingPickup) {
             updatedFields.order_pickup_date = new Date()
         }
+
         if (delivered) {
             updatedFields.order_delivered_date = new Date()
         }
         if (!req.body.order_status) {
             updatedFields.order_cancellation_date = new Date()
         }
-        console.log(Exist?.order_status)
+
         if (Exist?.order_status) {
             if (dispensaryApproved) {
                 await Notification.create({
@@ -577,39 +564,22 @@ router.post('/update-order', auth, upload.none(), async (req, res) => {
             } else if (driverAssigned) {
                 await Notification.create({
                     status: 'Driver Assigned',
-                    message: `Order (ID${Exist?.order_id}) status changed to 'Driver Assigned'`,
-                })
-                sendStatusToCustomer(
-                    req,
-                    Exist.customer,
-                    Exist.order_id,
-                    `Driver Assigned`
-                )
-                sendStatusToDispensary(
-                    req,
-                    Exist.dispensary,
-                    Exist.order_id,
-                    `Driver Assigned`
-                )
-            } else if (awaitingPickup) {
-                // send this message to customer for Awaiting Pickup
-                sendStatusToCustomer(
-                    req,
-                    Exist.customer,
-                    Exist.order_id,
-                    `Awaiting Pickup`
-                )
-                sendStatusToDispensary(
-                    req,
-                    Exist.dispensary,
-                    Exist.order_id,
-                    `Awaiting Pickup`
-                )
-                await Notification.create({
-                    status: 'Awaiting Pickup',
                     message: `Order (ID${Exist?.order_id}) status changed to 'Awaiting Pickup'`,
                 })
+                sendStatusToCustomer(
+                    req,
+                    Exist.customer,
+                    Exist.order_id,
+                    `Driver Assigned`
+                )
+                sendStatusToDispensary(
+                    req,
+                    Exist.dispensary,
+                    Exist.order_id,
+                    `Driver Assigned`
+                )
             } else if (inTransit) {
+                updatedFields.order_awaiting_pickup = false
                 // send this message to customer for In Transit
                 await Notification.create({
                     status: 'In Transit',
@@ -629,6 +599,7 @@ router.post('/update-order', auth, upload.none(), async (req, res) => {
                 )
             }
         } else if (delivered) {
+            updatedFields.order_in_transit = false
             await Notification.create({
                 status: 'Order Delivered',
                 message: `Order (ID${Exist?.order_id}) status changed to 'Order Delivered'`,
@@ -680,7 +651,77 @@ router.post('/update-order', auth, upload.none(), async (req, res) => {
     }
 })
 
-// GET DISPENSARY ORDERS
+router.get('/driver-current-order', upload.none(), auth, async (req, res) => {
+    try {
+        const driverId = req.user.id
+        const orders = await Order.find({
+            driver_assigned: true,
+            dispensary_approved: true,
+            order_status: true,
+            order_delivered: false,
+        })
+            .populate({
+                path: 'driver',
+                select: '-password -dob -license_image -userLocations -createdAt -updatedAt',
+            })
+            .populate({
+                path: 'customer',
+                select: '-password -dob -license_image -userLocations -createdAt -updatedAt',
+            })
+            .populate('dispensary')
+
+        // Filter orders for the specific driver
+        console.log(driverId)
+        const filteredOrders = orders.filter(
+            (order) => order.driver && order.driver._id.toString() === driverId
+        )
+
+        sendSuccessMessage(
+            statusCode.OK,
+            filteredOrders,
+            'Orders history successfully fetched.',
+            res
+        )
+    } catch (error) {
+        return sendErrorMessage(statusCode.SERVER_ERROR, error.message, res)
+    }
+})
+
+router.get('/driver-completed-orders', upload.none(), auth, async (req, res) => {
+    try {
+        const driverId = req.user.id
+        const orders = await Order.find({
+            driver_assigned: true,
+            dispensary_approved: true,
+            order_status: true,
+            order_delivered: true,
+        })
+            .populate({
+                path: 'driver',
+                select: '-password -dob -license_image -userLocations -createdAt -updatedAt',
+            })
+            .populate({
+                path: 'customer',
+                select: '-password -dob -license_image -userLocations -createdAt -updatedAt',
+            })
+            .populate('dispensary')
+
+        // Filter orders for the specific driver
+        const filteredOrders = orders.filter(
+            (order) => order.driver && order.driver._id.toString() === driverId
+        )
+
+        sendSuccessMessage(
+            statusCode.OK,
+            filteredOrders,
+            'Orders history successfully fetched.',
+            res
+        )
+    } catch (error) {
+        return sendErrorMessage(statusCode.SERVER_ERROR, error.message, res)
+    }
+})
+
 router.get('/getbyid', upload.none(), auth, async (req, res) => {
     const { id } = req.query
     try {
