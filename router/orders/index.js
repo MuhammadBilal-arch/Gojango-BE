@@ -397,6 +397,7 @@ router.get('/approved', upload.none(), auth, async (req, res) => {
             dispensary_approved: true,
             order_delivered: false,
             driver_assigned: false,
+            rejected_drivers: { $ne: driverId },
         })
 
             .populate('dispensary')
@@ -651,6 +652,73 @@ router.post('/update-order', auth, upload.none(), async (req, res) => {
     }
 })
 
+router.post('/driver-reject-order', auth, upload.none(), async (req, res) => {
+    try {
+        const { id, driverId } = req.body
+
+        if (!id || !driverId) {
+            return sendErrorMessage(
+                statusCode.NOT_ACCEPTABLE,
+                'Required: id, driverId',
+                res
+            )
+        }
+
+        const existingOrder = await Order.findOne({
+            _id: id,
+            rejected_drivers: { $ne: driverId },
+        })
+
+        if (!existingOrder) {
+            return sendErrorMessage(
+                statusCode.NOT_ACCEPTABLE,
+                'Invalid Order id or Order already rejected by the driver',
+                res
+            )
+        }
+
+        const updatedFields = {
+            ...req.body,
+            updatedAt: Date.now(),
+            order_status: false, // Set order status to false indicating it's rejected
+        }
+        updatedFields.rejected_drivers = [
+            ...existingOrder.rejected_drivers,
+            driverId,
+        ]
+
+        const result = await Order.findByIdAndUpdate(id, updatedFields, {
+            new: true,
+        })
+            .populate(
+                'driver',
+                '-password -dob -license_image -userLocations -createdAt -updatedAt'
+            )
+            .populate(
+                'customer',
+                '-password -dob -license_image -userLocations -createdAt -updatedAt'
+            )
+            .populate('dispensary')
+
+        if (result) {
+            sendSuccessMessage(
+                statusCode.OK,
+                result,
+                'Order successfully updated.',
+                res
+            )
+        } else {
+            return sendErrorMessage(
+                statusCode.SERVER_ERROR,
+                'Invalid data',
+                res
+            )
+        }
+    } catch (error) {
+        return sendErrorMessage(statusCode.SERVER_ERROR, error.message, res)
+    }
+})
+
 router.get('/driver-current-order', upload.none(), auth, async (req, res) => {
     try {
         const driverId = req.user.id
@@ -687,40 +755,46 @@ router.get('/driver-current-order', upload.none(), auth, async (req, res) => {
     }
 })
 
-router.get('/driver-completed-orders', upload.none(), auth, async (req, res) => {
-    try {
-        const driverId = req.user.id
-        const orders = await Order.find({
-            driver_assigned: true,
-            dispensary_approved: true,
-            order_status: true,
-            order_delivered: true,
-        })
-            .populate({
-                path: 'driver',
-                select: '-password -dob -license_image -userLocations -createdAt -updatedAt',
+router.get(
+    '/driver-completed-orders',
+    upload.none(),
+    auth,
+    async (req, res) => {
+        try {
+            const driverId = req.user.id
+            const orders = await Order.find({
+                driver_assigned: true,
+                dispensary_approved: true,
+                order_status: true,
+                order_delivered: true,
             })
-            .populate({
-                path: 'customer',
-                select: '-password -dob -license_image -userLocations -createdAt -updatedAt',
-            })
-            .populate('dispensary')
+                .populate({
+                    path: 'driver',
+                    select: '-password -dob -license_image -userLocations -createdAt -updatedAt',
+                })
+                .populate({
+                    path: 'customer',
+                    select: '-password -dob -license_image -userLocations -createdAt -updatedAt',
+                })
+                .populate('dispensary')
 
-        // Filter orders for the specific driver
-        const filteredOrders = orders.filter(
-            (order) => order.driver && order.driver._id.toString() === driverId
-        )
+            // Filter orders for the specific driver
+            const filteredOrders = orders.filter(
+                (order) =>
+                    order.driver && order.driver._id.toString() === driverId
+            )
 
-        sendSuccessMessage(
-            statusCode.OK,
-            filteredOrders,
-            'Orders history successfully fetched.',
-            res
-        )
-    } catch (error) {
-        return sendErrorMessage(statusCode.SERVER_ERROR, error.message, res)
+            sendSuccessMessage(
+                statusCode.OK,
+                filteredOrders,
+                'Orders history successfully fetched.',
+                res
+            )
+        } catch (error) {
+            return sendErrorMessage(statusCode.SERVER_ERROR, error.message, res)
+        }
     }
-})
+)
 
 router.get('/getbyid', upload.none(), auth, async (req, res) => {
     const { id } = req.query

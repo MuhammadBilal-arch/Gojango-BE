@@ -86,6 +86,12 @@ const orderSchema = mongoose.Schema({
         lat: Number,
         lng: Number,
     },
+    rejected_drivers: [
+        {
+            type: mongoose.Schema.Types.Mixed,
+            ref: 'USER', // Assuming USER is the model for drivers
+        },
+    ],
 })
 
 orderSchema.pre('save', async function (next) {
