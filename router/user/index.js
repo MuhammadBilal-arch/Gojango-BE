@@ -673,4 +673,34 @@ router.post('/users', auth, async (req, res) => {
     }
 })
 
+router.post('/update-profile', auth, async (req, res) => {
+    try {
+        const { email } = req.body
+
+        const UserExist = await User.findOne({ email: email })
+        if (UserExist) {
+            let clone = { ...req.body }
+            delete clone.email
+            const _details = await User.findOneAndUpdate(
+                { email: email },
+                {
+                    ...clone,
+                    updatedAt: Date.now(),
+                },
+                {
+                    new: true,
+                }
+            )
+            sendSuccessMessage(
+                statusCode.OK,
+                _details,
+                'Profile updated successfully',
+                res
+            )
+        }
+    } catch (error) {
+        return sendErrorMessage(statusCode.SERVER_ERROR, error.message, res)
+    }
+})
+
 module.exports = router

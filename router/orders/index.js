@@ -392,6 +392,7 @@ router.get('/approved', upload.none(), auth, async (req, res) => {
         const userLatitude = parseFloat(req?.query?.lat) // User's latitude
         const userLongitude = parseFloat(req?.query?.long) // User's longitude
         const driverId = req.user.id
+
         const orders = await Order.find({
             order_status: true,
             dispensary_approved: true,
@@ -737,13 +738,12 @@ router.get('/driver-current-order', upload.none(), auth, async (req, res) => {
                 select: '-password -dob -license_image -userLocations -createdAt -updatedAt',
             })
             .populate('dispensary')
-
+          console.log(orders)  
         // Filter orders for the specific driver
-        console.log(driverId)
         const filteredOrders = orders.filter(
-            (order) => order.driver && order.driver._id.toString() === driverId
+            (order) => order.driver && order.driver._id.toString() === driverId.toString()
         )
-
+  
         sendSuccessMessage(
             statusCode.OK,
             filteredOrders,
