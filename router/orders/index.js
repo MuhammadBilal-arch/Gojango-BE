@@ -722,12 +722,13 @@ router.post('/driver-reject-order', auth, upload.none(), async (req, res) => {
 
 router.get('/driver-current-order', upload.none(), auth, async (req, res) => {
     try {
-        const driverId = req.user.id
-        const orders = await Order.find({
+        const driverId = req.user.id 
+        const order = await Order.findOne({
             driver_assigned: true,
             dispensary_approved: true,
             order_status: true,
             order_delivered: false,
+            driver: driverId.toString(), // Filter by specific driver
         })
             .populate({
                 path: 'driver',
@@ -738,22 +739,17 @@ router.get('/driver-current-order', upload.none(), auth, async (req, res) => {
                 select: '-password -dob -license_image -userLocations -createdAt -updatedAt',
             })
             .populate('dispensary')
-          console.log(orders)  
-        // Filter orders for the specific driver
-        const filteredOrders = orders.filter(
-            (order) => order.driver && order.driver._id.toString() === driverId.toString()
-        )
-  
-        sendSuccessMessage(
-            statusCode.OK,
-            filteredOrders,
-            'Orders history successfully fetched.',
-            res
-        )
+
+        if (order) {
+            sendSuccessMessage(statusCode.OK, order, 'Order successfully fetched.', res)
+        } else {
+            sendSuccessMessage(statusCode.NOT_FOUND, null, 'No order found for the specified driver.', res)
+        }
     } catch (error) {
         return sendErrorMessage(statusCode.SERVER_ERROR, error.message, res)
     }
 })
+
 
 router.get(
     '/driver-completed-orders',
