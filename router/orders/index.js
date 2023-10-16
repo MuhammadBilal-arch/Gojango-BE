@@ -5,6 +5,7 @@ const { sendSuccessMessage, sendErrorMessage } = require('../../utils/messages')
 const { statusCode } = require('../../utils/statusCode')
 const Order = require('../../model/orders')
 const Transaction = require('../../model/transactions')
+const moment = require('moment');
 
 const {
     upload,
@@ -816,5 +817,41 @@ router.get('/getbyid', upload.none(), auth, async (req, res) => {
         return sendErrorMessage(statusCode.SERVER_ERROR, error.message, res)
     }
 })
+
+ 
+
+router.get('/earnings', auth, async (req, res) => {
+    try {
+        const driverId = req.user.id;
+        const currentDate = moment();
+        const sevenDaysAgo = moment().subtract(7, 'days');
+        // Find orders within the last 7 days for the specific driver
+        const orders = await Order.find({
+            driver: driverId.toString(),
+            order_delivered: true,
+            createdAt: { $gte: sevenDaysAgo, $lte: currentDate }
+        });
+
+        // Calculate the total earnings for the past week
+        const totalEarnings = orders.reduce((total, order) => total + order.total_amount, 0);
+
+        // Get the last 7 earnings
+        const lastSevenEarnings = orders.map(order => ({
+            id: order._id,
+            amount: order.total_amount,
+            createdAt: order.createdAt
+        }));
+
+        sendSuccessMessage(
+            statusCode.OK,
+            { lastSevenEarnings, totalEarnings },
+            'Earnings data successfully fetched.',
+            res
+        );
+    } catch (error) {
+        return sendErrorMessage(statusCode.SERVER_ERROR, error.message, res);
+    }
+});
+
 
 module.exports = router
