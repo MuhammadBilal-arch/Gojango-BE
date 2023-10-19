@@ -603,6 +603,8 @@ router.post('/update-order', auth, upload.none(), async (req, res) => {
             }
         } else if (delivered) {
             updatedFields.order_in_transit = false
+            updatedFields.order_delivered = true
+
             await Notification.create({
                 status: 'Order Delivered',
                 message: `Order (ID${Exist?.order_id}) status changed to 'Order Delivered'`,
@@ -656,12 +658,12 @@ router.post('/update-order', auth, upload.none(), async (req, res) => {
 
 router.post('/driver-reject-order', auth, upload.none(), async (req, res) => {
     try {
-        const { id, driverId } = req.body
+        const { id, driverId ,reason} = req.body
 
-        if (!id || !driverId) {
+        if (!id || !driverId || !reason) {
             return sendErrorMessage(
                 statusCode.NOT_ACCEPTABLE,
-                'Required: id, driverId',
+                'Required: id, driverId , reason',
                 res
             )
         }
@@ -681,6 +683,7 @@ router.post('/driver-reject-order', auth, upload.none(), async (req, res) => {
 
         const updatedFields = {
             ...req.body,
+            order_cancel_reason : reason,
             updatedAt: Date.now(),
             order_status: false, // Set order status to false indicating it's rejected
         }
@@ -818,7 +821,6 @@ router.get('/getbyid', upload.none(), auth, async (req, res) => {
     }
 })
 
- 
 
 router.get('/earnings', auth, async (req, res) => {
     try {

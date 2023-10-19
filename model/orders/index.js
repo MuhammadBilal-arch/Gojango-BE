@@ -78,6 +78,9 @@ const orderSchema = mongoose.Schema({
     updatedAt: {
         type: Date,
     },
+    order_cancel_reason: {
+        type: String,
+    },
     order_id: {
         type: Number,
         unique: true,
