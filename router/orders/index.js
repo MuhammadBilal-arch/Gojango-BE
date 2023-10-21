@@ -5,7 +5,7 @@ const { sendSuccessMessage, sendErrorMessage } = require('../../utils/messages')
 const { statusCode } = require('../../utils/statusCode')
 const Order = require('../../model/orders')
 const Transaction = require('../../model/transactions')
-const moment = require('moment');
+const moment = require('moment')
 
 const {
     upload,
@@ -658,7 +658,7 @@ router.post('/update-order', auth, upload.none(), async (req, res) => {
 
 router.post('/driver-reject-order', auth, upload.none(), async (req, res) => {
     try {
-        const { id, driverId ,reason} = req.body
+        const { id, driverId, reason } = req.body
 
         if (!id || !driverId || !reason) {
             return sendErrorMessage(
@@ -683,7 +683,7 @@ router.post('/driver-reject-order', auth, upload.none(), async (req, res) => {
 
         const updatedFields = {
             ...req.body,
-            order_cancel_reason : reason,
+            order_cancel_reason: reason,
             updatedAt: Date.now(),
             order_status: false, // Set order status to false indicating it's rejected
         }
@@ -726,7 +726,7 @@ router.post('/driver-reject-order', auth, upload.none(), async (req, res) => {
 
 router.get('/driver-current-order', upload.none(), auth, async (req, res) => {
     try {
-        const driverId = req.user.id 
+        const driverId = req.user.id
         const order = await Order.findOne({
             driver_assigned: true,
             dispensary_approved: true,
@@ -745,15 +745,24 @@ router.get('/driver-current-order', upload.none(), auth, async (req, res) => {
             .populate('dispensary')
 
         if (order) {
-            sendSuccessMessage(statusCode.OK, order, 'Order successfully fetched.', res)
+            sendSuccessMessage(
+                statusCode.OK,
+                order,
+                'Order successfully fetched.',
+                res
+            )
         } else {
-            sendSuccessMessage(statusCode.NOT_FOUND, null, 'No order found for the specified driver.', res)
+            sendSuccessMessage(
+                statusCode.NOT_FOUND,
+                null,
+                'No order found for the specified driver.',
+                res
+            )
         }
     } catch (error) {
         return sendErrorMessage(statusCode.SERVER_ERROR, error.message, res)
     }
 })
-
 
 router.get(
     '/driver-completed-orders',
@@ -779,9 +788,11 @@ router.get(
                 .populate('dispensary')
 
             // Filter orders for the specific driver
+            console.log(driverId)
             const filteredOrders = orders.filter(
                 (order) =>
-                    order.driver && order.driver._id.toString() === driverId
+                    order.driver &&
+                    order.driver._id.toString() === driverId.toString()
             )
 
             sendSuccessMessage(
@@ -821,39 +832,40 @@ router.get('/getbyid', upload.none(), auth, async (req, res) => {
     }
 })
 
-
 router.get('/earnings', auth, async (req, res) => {
     try {
-        const driverId = req.user.id;
-        const currentDate = moment();
-        const sevenDaysAgo = moment().subtract(7, 'days');
+        const driverId = req.user.id
+        const currentDate = moment()
+        const sevenDaysAgo = moment().subtract(7, 'days')
         // Find orders within the last 7 days for the specific driver
         const orders = await Order.find({
             driver: driverId.toString(),
             order_delivered: true,
-            createdAt: { $gte: sevenDaysAgo, $lte: currentDate }
-        });
+            order_delivered_date: { $gte: sevenDaysAgo, $lte: currentDate },
+        })
 
         // Calculate the total earnings for the past week
-        const totalEarnings = orders.reduce((total, order) => total + order.total_amount, 0);
+        const totalEarnings = orders.reduce(
+            (total, order) => total + order.total_amount,
+            0
+        )
 
         // Get the last 7 earnings
-        const lastSevenEarnings = orders.map(order => ({
+        const lastSevenEarnings = orders.map((order) => ({
             id: order._id,
             amount: order.total_amount,
-            createdAt: order.createdAt
-        }));
+            createdAt: order.createdAt,
+        }))
 
         sendSuccessMessage(
             statusCode.OK,
             { lastSevenEarnings, totalEarnings },
             'Earnings data successfully fetched.',
             res
-        );
+        )
     } catch (error) {
-        return sendErrorMessage(statusCode.SERVER_ERROR, error.message, res);
+        return sendErrorMessage(statusCode.SERVER_ERROR, error.message, res)
     }
-});
-
+})
 
 module.exports = router
