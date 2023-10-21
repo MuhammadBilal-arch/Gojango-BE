@@ -859,7 +859,7 @@ router.get('/earnings', auth, async (req, res) => {
 
         sendSuccessMessage(
             statusCode.OK,
-            { lastSevenEarnings, totalEarnings },
+            { orders, totalEarnings },
             'Earnings data successfully fetched.',
             res
         )
