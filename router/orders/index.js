@@ -206,7 +206,7 @@ router.patch('/update', auth, upload.none(), async (req, res) => {
                 if (Exist.driver) {
                     sendStatusToCustomer(
                         req,
-                        Exist.driver,
+                        Exist.driver._id,
                         Exist.order_id,
                         `Order Cancelled`
                     )
@@ -499,7 +499,7 @@ router.post('/update-order', auth, upload.none(), async (req, res) => {
                 if (Exist.driver) {
                     sendStatusToCustomer(
                         req,
-                        Exist.driver,
+                        Exist.driver._id,
                         Exist.order_id,
                         `Order Cancelled`
                     )
@@ -849,14 +849,6 @@ router.get('/earnings', auth, async (req, res) => {
             (total, order) => total + order.total_amount,
             0
         )
-
-        // Get the last 7 earnings
-        const lastSevenEarnings = orders.map((order) => ({
-            id: order._id,
-            amount: order.total_amount,
-            createdAt: order.createdAt,
-        }))
-
         sendSuccessMessage(
             statusCode.OK,
             { orders, totalEarnings },
