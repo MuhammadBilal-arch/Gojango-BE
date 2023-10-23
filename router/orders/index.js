@@ -206,7 +206,7 @@ router.patch('/update', auth, upload.none(), async (req, res) => {
                 if (Exist.driver) {
                     sendStatusToCustomer(
                         req,
-                        Exist.driver._id,
+                        Exist.driver,
                         Exist.order_id,
                         `Order Cancelled`
                     )
@@ -499,7 +499,7 @@ router.post('/update-order', auth, upload.none(), async (req, res) => {
                 if (Exist.driver) {
                     sendStatusToCustomer(
                         req,
-                        Exist.driver._id,
+                        Exist.driver,
                         Exist.order_id,
                         `Order Cancelled`
                     )
