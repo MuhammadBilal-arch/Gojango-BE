@@ -89,6 +89,7 @@ const orderSchema = mongoose.Schema({
         lat: Number,
         lng: Number,
     },
+    driving_time: Number,
     rejected_drivers: [
         {
             type: mongoose.Schema.Types.Mixed,

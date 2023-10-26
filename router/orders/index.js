@@ -832,27 +832,139 @@ router.get('/getbyid', upload.none(), auth, async (req, res) => {
     }
 })
 
-router.get('/earnings', auth, async (req, res) => {
+router.get('/earnings-weekly', auth, async (req, res) => {
     try {
         const driverId = req.user.id
-        const currentDate = moment()
-        const sevenDaysAgo = moment().subtract(7, 'days')
-        // Find orders within the last 7 days for the specific driver
+        const { startDate, endDate } = req.query
+
+        if (!startDate || !endDate) {
+            return sendErrorMessage(
+                statusCode.BAD_REQUEST,
+                'Start and end dates are required.',
+                res
+            )
+        }
+
+        const isValidStartDate = moment(startDate, 'MM/DD/YYYY', true).isValid()
+        const isValidEndDate = moment(endDate, 'MM/DD/YYYY', true).isValid()
+
+        if (!isValidStartDate || !isValidEndDate) {
+            return sendErrorMessage(
+                statusCode.BAD_REQUEST,
+                'Invalid date format. Please use MM/DD/YYYY.',
+                res
+            )
+        }
+
+        const startOfWeek = moment
+            .utc(startDate, 'MM/DD/YYYY')
+            .isoWeekday(1)
+            .startOf('day')
+            .toDate()
+        const endOfWeek = moment
+            .utc(endDate, 'MM/DD/YYYY')
+            .isoWeekday(7)
+            .endOf('day')
+            .toDate()
+
+        const datesArray = []
+        let currentDate = moment(startOfWeek)
+        while (currentDate.isSameOrBefore(endOfWeek)) {
+            datesArray.push(currentDate.format('MM/DD/YYYY'))
+            currentDate.add(1, 'day')
+        }
+
         const orders = await Order.find({
             driver: driverId.toString(),
             order_delivered: true,
-            order_delivered_date: { $gte: sevenDaysAgo, $lte: currentDate },
+            order_delivered_date: { $gte: startOfWeek, $lte: endOfWeek },
         })
 
-        // Calculate the total earnings for the past week
+        const dailyEarnings = {}
+
+        datesArray.forEach((date) => {
+            dailyEarnings[date] = 0
+        })
+
+        orders.forEach((order) => {
+            const formattedDate = moment(order.order_delivered_date).format(
+                'MM/DD/YYYY'
+            )
+            dailyEarnings[formattedDate] += order.total_amount
+        })
+
+        // Prepare the response data
+        const weeklyEarnings = datesArray.map((date) => {
+            return {
+                amount: dailyEarnings[date],
+                date: date,
+                day: moment(date, 'MM/DD/YYYY').format('dddd'),
+            }
+        })
+
+        // Calculate total earnings for the week
+        const totalEarnings = Object.values(dailyEarnings).reduce(
+            (total, amount) => total + amount,
+            0
+        )
+
+        sendSuccessMessage(
+            statusCode.OK,
+            {
+                orders,
+                totalEarnings,
+                weeklyEarnings,
+                total_deliveries: orders.length,
+            },
+            'Earnings data successfully fetched for the specified week.',
+            res
+        )
+    } catch (error) {
+        return sendErrorMessage(statusCode.SERVER_ERROR, error.message, res)
+    }
+})
+
+router.get('/earnings-day', auth, async (req, res) => {
+    try {
+        const driverId = req.user.id
+        const { date } = req.query
+
+        if (!date) {
+            return sendErrorMessage(
+                statusCode.BAD_REQUEST,
+                'Date parameter is required.',
+                res
+            )
+        }
+        const isValidStartDate = moment(date, 'MM/DD/YYYY', true).isValid()
+        if (!isValidStartDate) {
+            return sendErrorMessage(
+                statusCode.BAD_REQUEST,
+                'Invalid date format. Please use MM/DD/YYYY.',
+                res
+            )
+        }
+        const selectedDate = moment(date, 'MM/DD/YYYY') // Assuming date is in 'YYYY-MM-DD' format
+
+        const orders = await Order.find({
+            driver: driverId.toString(),
+            order_delivered: true,
+            order_delivered_date: {
+                $gte: selectedDate.startOf('day').toDate(),
+                $lte: selectedDate.endOf('day').toDate(),
+            },
+        })
+
+        // Calculate the total earnings for the specific day
         const totalEarnings = orders.reduce(
             (total, order) => total + order.total_amount,
             0
         )
+
         sendSuccessMessage(
             statusCode.OK,
-            { orders, totalEarnings },
-            'Earnings data successfully fetched.',
+            { orders, totalEarnings, total_deliveries: orders.length },
+            'Earnings data successfully fetched for the specified day.',
             res
         )
     } catch (error) {
