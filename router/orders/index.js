@@ -879,6 +879,15 @@ router.get('/earnings-weekly', auth, async (req, res) => {
             order_delivered: true,
             order_delivered_date: { $gte: startOfWeek, $lte: endOfWeek },
         })
+            .populate({
+                path: 'driver',
+                select: '-password -dob -license_image -userLocations -createdAt -updatedAt', // Exclude the password field
+            })
+            .populate({
+                path: 'customer',
+                select: '-password -dob -license_image -userLocations -createdAt -updatedAt', // Exclude the password field
+            })
+            .populate('dispensary')
 
         const dailyEarnings = {}
 
@@ -954,6 +963,15 @@ router.get('/earnings-day', auth, async (req, res) => {
                 $lte: selectedDate.endOf('day').toDate(),
             },
         })
+            .populate({
+                path: 'driver',
+                select: '-password -dob -license_image -userLocations -createdAt -updatedAt', // Exclude the password field
+            })
+            .populate({
+                path: 'customer',
+                select: '-password -dob -license_image -userLocations -createdAt -updatedAt', // Exclude the password field
+            })
+            .populate('dispensary')
 
         // Calculate the total earnings for the specific day
         const totalEarnings = orders.reduce(
