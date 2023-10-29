@@ -90,6 +90,7 @@ const orderSchema = mongoose.Schema({
         lng: Number,
     },
     driving_time: Number,
+    driving_distance: Number,
     rejected_drivers: [
         {
             type: mongoose.Schema.Types.Mixed,
