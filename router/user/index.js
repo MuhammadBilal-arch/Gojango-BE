@@ -335,6 +335,7 @@ router.post(
         try {
             const { files, body } = req
             const { email } = body
+
             const user = await User.findOne({ email: email })
             if (!user) {
                 return sendErrorMessage(
@@ -354,27 +355,27 @@ router.post(
             let ImageObject = {}
 
             if (files['license_front'] && files['license_back']) {
-                const licenseFrontPath = files['license_front'][0]?.path || null
-                const licenseBackPath = files['license_back'][0]?.path || null
+                const licenseFrontPath = files['license_front'][0]?.location || null
+                const licenseBackPath = files['license_back'][0]?.location || null
 
                 ImageObject = {
                     license_image: {
-                        license_front_image: licenseFrontPath
-                            .replace(/\\/g, '/')
-                            .split('public/')[1],
-                        license_back_image: licenseBackPath
-                            .replace(/\\/g, '/')
-                            .split('public/')[1],
+                        license_front_image: licenseFrontPath,
+                            // .replace(/\\/g, '/')
+                            // .split('public/')[1],
+                        license_back_image: licenseBackPath,
+                            // .replace(/\\/g, '/')
+                            // .split('public/')[1],
                     },
                 }
             }
 
             if (files['passport_image']) {
-                const passportPath = files['passport_image'][0]?.path || null
+                const passportPath = files['passport_image'][0]?.location || null
                 ImageObject = {
                     passport_image: passportPath
-                        .replace(/\\/g, '/')
-                        .split('public/')[1],
+                        // .replace(/\\/g, '/')
+                        // .split('public/')[1],
                 }
             }
 

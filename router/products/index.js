@@ -41,7 +41,8 @@ router.post('/add', auth, upload.single('image'), async (req, res) => {
 
         let SaveObject = {
             ...req.body,
-            image: req.file.path.replace(/\\/g, '/').split('public/')[1],
+            image: req.file.location,
+            // path.replace(/\\/g, '/').split('public/')[1],
             createdAt: Date.now(),
             updatedAt: Date.now(),
         }
@@ -124,7 +125,8 @@ router.patch('/update', auth, upload.single('image'), async (req, res) => {
         if (req?.file) {
             SaveObject = {
                 ...SaveObject,
-                image: req.file.path.replace(/\\/g, '/').split('public/')[1],
+                image: req.file.location,
+                // .path.replace(/\\/g, '/').split('public/')[1],
             }
         }
         const result = await Product.findOneAndUpdate(

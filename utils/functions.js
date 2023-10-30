@@ -1,20 +1,48 @@
 const multer = require('multer')
+const multerS3 = require('multer-s3')
 
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, 'public/files')
-    },
-    filename: (req, file, cb) => {
-        const fileExtension = file.originalname.split('.').pop()
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9)
-        const filename = `${uniqueSuffix}.${fileExtension}`
-        cb(null, filename)
-    },
+// Configure aws s3 SDK
+
+const AWS = require('aws-sdk')
+AWS.config.update({
+    region: 'us-east-1',
+    accessKeyId: 'AKIAQACXFQ7GOAHE7OO2',
+    secretAccessKey: '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',
 })
 
-const uploadToLocalDir = multer({ storage: storage }).array('file')
-const uploadSingleToLocalDir = multer({ storage: storage }).single('file')
-const upload = multer({ storage: storage })
+const s3 = new AWS.S3()
+const myBucket = 'ganjago-aws-bucket'
+
+// const storage = multer.diskStorage({
+//     destination: (req, file, cb) => {
+//         cb(null, 'public/files')
+//     },
+//     filename: (req, file, cb) => {
+//         const fileExtension = file.originalname.split('.').pop()
+//         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9)
+//         const filename = `${uniqueSuffix}.${fileExtension}`
+//         cb(null, filename)
+//     },
+// })
+
+// const uploadToLocalDir = multer({ storage: storage }).array('file')
+// const uploadSingleToLocalDir = multer({ storage: storage }).single('file')
+
+const upload = multer({
+    storage: multerS3({
+        s3: s3,
+        bucket: myBucket,
+        ACL: 'public-read',
+        contentType: multerS3.AUTO_CONTENT_TYPE,
+        key: function (req, file, cb) {
+            const fileExtension = file.originalname.split('.').pop()
+            const uniqueSuffix =
+                Date.now() + '-' + Math.round(Math.random() * 1e9)
+            const filename = `${uniqueSuffix}.${fileExtension}`
+            cb(null, filename) // Set the object key to the original file name
+        },
+    }),
+})
 
 function calculateDistance(lat1, lon1, lat2, lon2) {
     const R = 3958.8 // Earth's radius in miles
@@ -47,12 +75,12 @@ const generateOTP = () => {
     return OTP
 }
 
-const sendStatusToCustomer = (req, user, orderId, statusMessage) => {    
+const sendStatusToCustomer = (req, user, orderId, statusMessage) => {
     req.app.locals.io
         .to(user?._id)
         .emit('orderStatusUpdated', { orderId, status: statusMessage })
 }
-const sendStatusToDispensary = (req, user, orderId, statusMessage) => {    
+const sendStatusToDispensary = (req, user, orderId, statusMessage) => {
     console.log(user)
     req.app.locals.io
         .to(user.id.toString())
@@ -60,10 +88,10 @@ const sendStatusToDispensary = (req, user, orderId, statusMessage) => {
 }
 
 const validateRequiredFields = (req, res, requiredFields) => {
-    const missingFields = [];
+    const missingFields = []
     for (const field of requiredFields) {
         if (!req.body[field]) {
-            missingFields.push(field);
+            missingFields.push(field)
         }
     }
 
@@ -72,19 +100,17 @@ const validateRequiredFields = (req, res, requiredFields) => {
             statusCode.NOT_ACCEPTABLE,
             `Missing fields: ${missingFields.join(' | ')}`,
             res
-        );
+        )
     }
 }
 
-
-
 module.exports = {
-    uploadToLocalDir,
-    uploadSingleToLocalDir,
+    // uploadToLocalDir,
+    // uploadSingleToLocalDir,
     upload,
     calculateDistance,
     generateOTP,
     sendStatusToCustomer,
     validateRequiredFields,
-    sendStatusToDispensary
+    sendStatusToDispensary,
 }
