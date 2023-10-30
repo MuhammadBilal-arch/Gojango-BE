@@ -9,7 +9,7 @@ const ordersController = require('./orders')
 const chatController = require('./chat')
 const cartController = require('./cart')
 const taxController = require('./taxes')
-const notificationController = require('./notifications')
+const notificationController = require('./notifications') 
 
 //All routes
 router.use('/account', userController)
