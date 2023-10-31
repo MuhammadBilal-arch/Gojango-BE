@@ -65,6 +65,10 @@ const userSchema = mongoose.Schema({
         type: Boolean,
         default: false,
     },
+    notification_seen: {
+        type: Boolean,
+        default: false,
+    },
     status: {
         type: Boolean,
         default: true,
