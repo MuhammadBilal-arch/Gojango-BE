@@ -31,7 +31,7 @@ const userLocationSchema = mongoose.Schema({
     },
     selected: {
         type: Boolean,
-        default: false,
+        default: true,
     },
     createdAt: {
         type: Date,
