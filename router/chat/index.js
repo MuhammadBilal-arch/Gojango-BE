@@ -77,6 +77,42 @@ router.patch('/update' ,upload.single('image'), auth, async (req, res) => {
     }
 })
 
+router.post('/update-msg' ,upload.single('image'), auth, async (req, res) => {
+    const { chat_id, messages, sender_info  } = req.body
+ 
+    try {
+        let Body = {
+            message_by: sender_info,
+            message: messages[0].message,
+            attachments: messages[0]?.attachments,
+            DateAndTime: Date.now(),
+        }
+        if(req.file)
+        {
+            Body.image = req.file.path.replace(/\\/g, '/').split('public/')[1]
+        }
+        const _details = await UserChat.findOneAndUpdate(
+            { chat_id: chat_id },
+            {
+                $push: {
+                    messages: Body,
+                },
+                updatedAt: Date.now(),
+            }
+        )
+        try {
+            req.app.locals.io.to(chat_id).emit('message', Body)
+        } catch (error) {
+            console.error('Error emitting message:', error)
+        }
+        res.json({
+            message: 'Message added successfully',
+            data: _details,
+        })
+    } catch (error) {
+        return sendErrorMessage(statusCode.SERVER_ERROR, error.message, res)
+    }
+})
 router.post('/id', auth, async (req, res) => {
     try {
         const { chat_id } = req.body
