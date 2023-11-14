@@ -52,7 +52,8 @@ router.patch('/update' ,upload.single('image'), auth, async (req, res) => {
         }
         if(req.file)
         {
-            Body.image = req.file.path.replace(/\\/g, '/').split('public/')[1]
+            Body.image = req.file.location
+            // .replace(/\\/g, '/').split('public/')[1]
         }
         const _details = await UserChat.findOneAndUpdate(
             { chat_id: chat_id },
@@ -89,7 +90,8 @@ router.post('/update-msg' ,upload.single('image'), auth, async (req, res) => {
         }
         if(req.file)
         {
-            Body.image = req.file.path.replace(/\\/g, '/').split('public/')[1]
+            Body.image = req.file.location
+            // .replace(/\\/g, '/').split('public/')[1]
         }
         const _details = await UserChat.findOneAndUpdate(
             { chat_id: chat_id },
