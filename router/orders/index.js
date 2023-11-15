@@ -248,11 +248,13 @@ router.patch('/update', auth, upload.none(), async (req, res) => {
 
         if (delivered) {
             updatedFields.order_delivered_date = new Date()
+            updatedFields.order_in_transit = false
+            updatedFields.order_delivered = true
         }
         if (!req.body.order_status) {
             updatedFields.order_cancellation_date = new Date()
         }
-
+        // NOTIFICATION
         if (Exist?.order_status) {
             if (dispensaryApproved) {
                 await Notification.create({
@@ -541,10 +543,14 @@ router.post('/update-order', auth, upload.none(), async (req, res) => {
 
         if (delivered) {
             updatedFields.order_delivered_date = new Date()
+            updatedFields.order_in_transit = false
+            updatedFields.order_delivered = true
         }
         if (!req.body.order_status) {
             updatedFields.order_cancellation_date = new Date()
         }
+
+        // FOR SENDING NOTIFICATIONS
 
         if (Exist?.order_status) {
             if (dispensaryApproved) {
@@ -602,8 +608,6 @@ router.post('/update-order', auth, upload.none(), async (req, res) => {
                 )
             }
         } else if (delivered) {
-            updatedFields.order_in_transit = false
-            updatedFields.order_delivered = true
 
             await Notification.create({
                 status: 'Order Delivered',
