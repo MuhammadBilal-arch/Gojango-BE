@@ -75,16 +75,20 @@ const generateOTP = () => {
     return OTP
 }
 
-const sendStatusToCustomer = (req, user, orderId, statusMessage) => {
+const sendStatusToCustomer = (req, user, orderId, statusMessage , data) => {
     req.app.locals.io
         .to(user?._id)
-        .emit('orderStatusUpdated', { orderId, status: statusMessage })
+        .emit('orderStatusUpdated', { orderId, status: statusMessage , data})
 }
-const sendStatusToDispensary = (req, user, orderId, statusMessage) => {
-    console.log(user)
+const sendStatusToDispensary = (req, user, orderId, statusMessage , data) => { 
     req.app.locals.io
         .to(user.id.toString())
-        .emit('orderStatusUpdated', { orderId, status: statusMessage })
+        .emit('orderStatusUpdated', { orderId, status: statusMessage , data})
+}
+const sendDriverLiveLocation = (req, user, orderId,  data) => { 
+    req.app.locals.io
+        .to(user.id.toString())
+        .emit('orderDriverLocationUpdated', { orderId , data})
 }
 
 const validateRequiredFields = (req, res, requiredFields) => {
@@ -113,4 +117,5 @@ module.exports = {
     sendStatusToCustomer,
     validateRequiredFields,
     sendStatusToDispensary,
+    sendDriverLiveLocation
 }

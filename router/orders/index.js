@@ -12,6 +12,7 @@ const {
     calculateDistance,
     sendStatusToCustomer,
     sendStatusToDispensary,
+    sendDriverLiveLocation,
 } = require('../../utils/functions')
 const Notification = require('../../model/notification')
 const User = require('../../model/user')
@@ -186,6 +187,10 @@ router.patch('/update', auth, upload.none(), async (req, res) => {
                 lat: parseFloat(req.body.lat),
                 lng: parseFloat(req.body.lng),
             }
+            sendDriverLiveLocation(req, Exist.customer, Exist.order_id, {
+                lat: parseFloat(req.body.lat),
+                lng: parseFloat(req.body.lng),
+            })
         }
 
         if ('order_status' in req.body) {
@@ -201,14 +206,20 @@ router.patch('/update', auth, upload.none(), async (req, res) => {
                     req,
                     Exist.customer,
                     Exist.order_id,
-                    `Order Cancelled`
+                    `Order Cancelled`,
+                    {
+                        order_status: false,
+                    }
                 )
                 if (Exist.driver) {
                     sendStatusToCustomer(
                         req,
                         Exist.driver,
                         Exist.order_id,
-                        `Order Cancelled`
+                        `Order Cancelled`,
+                        {
+                            order_status: false,
+                        }
                     )
                 }
 
@@ -216,7 +227,10 @@ router.patch('/update', auth, upload.none(), async (req, res) => {
                     req,
                     Exist.dispensary,
                     Exist.order_id,
-                    `Order Cancelled`
+                    `Order Cancelled`,
+                    {
+                        order_status: false,
+                    }
                 )
             }
         }
@@ -265,13 +279,19 @@ router.patch('/update', auth, upload.none(), async (req, res) => {
                     req,
                     Exist?.customer,
                     Exist.order_id,
-                    `Order Placed`
+                    `Order Placed`,
+                    {
+                        dispensary_approved: true,
+                    }
                 )
                 sendStatusToDispensary(
                     req,
                     Exist.dispensary,
                     Exist.order_id,
-                    `Driver Assigned`
+                    `Driver Placed`,
+                    {
+                        dispensary_approved: true,
+                    }
                 )
             } else if (driverAssigned) {
                 await Notification.create({
@@ -282,13 +302,19 @@ router.patch('/update', auth, upload.none(), async (req, res) => {
                     req,
                     Exist.customer,
                     Exist.order_id,
-                    `Driver Assigned`
+                    `Driver Assigned`,
+                    {
+                        order_awaiting_pickup: true,
+                    }
                 )
                 sendStatusToDispensary(
                     req,
                     Exist.dispensary,
                     Exist.order_id,
-                    `Driver Assigned`
+                    `Driver Assigned`,
+                    {
+                        order_awaiting_pickup: true,
+                    }
                 )
             } else if (inTransit) {
                 updatedFields.order_awaiting_pickup = false
@@ -301,13 +327,21 @@ router.patch('/update', auth, upload.none(), async (req, res) => {
                     req,
                     Exist.customer,
                     Exist.order_id,
-                    `In Transit`
+                    `In Transit`,
+                    {
+                        order_awaiting_pickup: false,
+                        order_in_transit: true,
+                    }
                 )
                 sendStatusToDispensary(
                     req,
                     Exist.dispensary,
                     Exist.order_id,
-                    `In Transit`
+                    `In Transit`,
+                    {
+                        order_awaiting_pickup: false,
+                        order_in_transit: true,
+                    }
                 )
             }
         } else if (delivered) {
@@ -320,13 +354,21 @@ router.patch('/update', auth, upload.none(), async (req, res) => {
                 req,
                 Exist.customer,
                 Exist.order_id,
-                `Order Delivered`
+                `Order Delivered`,
+                {
+                    order_in_transit: false,
+                    order_delivered: true,
+                }
             )
             sendStatusToDispensary(
                 req,
                 Exist.dispensary,
                 Exist.order_id,
-                `Order Delivered`
+                `Order Delivered`,
+                {
+                    order_in_transit: false,
+                    order_delivered: true,
+                }
             )
         }
 
@@ -481,6 +523,10 @@ router.post('/update-order', auth, upload.none(), async (req, res) => {
                 lat: parseFloat(req.body.lat),
                 lng: parseFloat(req.body.lng),
             }
+            sendDriverLiveLocation(req, Exist.customer, Exist.order_id, {
+                lat: parseFloat(req.body.lat),
+                lng: parseFloat(req.body.lng),
+            })
         }
 
         if ('order_status' in req.body) {
@@ -496,14 +542,21 @@ router.post('/update-order', auth, upload.none(), async (req, res) => {
                     req,
                     Exist.customer,
                     Exist.order_id,
-                    `Order Cancelled`
+                    `Order Cancelled`,
+                    {
+                        order_status: false,
+                    }
                 )
+
                 if (Exist.driver) {
                     sendStatusToCustomer(
                         req,
                         Exist.driver,
                         Exist.order_id,
-                        `Order Cancelled`
+                        `Order Cancelled`,
+                        {
+                            order_status: false,
+                        }
                     )
                 }
 
@@ -511,7 +564,10 @@ router.post('/update-order', auth, upload.none(), async (req, res) => {
                     req,
                     Exist.dispensary,
                     Exist.order_id,
-                    `Order Cancelled`
+                    `Order Cancelled`,
+                    {
+                        order_status: false,
+                    }
                 )
             }
         }
@@ -549,9 +605,7 @@ router.post('/update-order', auth, upload.none(), async (req, res) => {
         if (!req.body.order_status) {
             updatedFields.order_cancellation_date = new Date()
         }
-
-        // FOR SENDING NOTIFICATIONS
-
+        // NOTIFICATION
         if (Exist?.order_status) {
             if (dispensaryApproved) {
                 await Notification.create({
@@ -562,13 +616,19 @@ router.post('/update-order', auth, upload.none(), async (req, res) => {
                     req,
                     Exist?.customer,
                     Exist.order_id,
-                    `Order Placed`
+                    `Order Placed`,
+                    {
+                        dispensary_approved: true,
+                    }
                 )
                 sendStatusToDispensary(
                     req,
                     Exist.dispensary,
                     Exist.order_id,
-                    `Driver Assigned`
+                    `Driver Placed`,
+                    {
+                        dispensary_approved: true,
+                    }
                 )
             } else if (driverAssigned) {
                 await Notification.create({
@@ -579,13 +639,19 @@ router.post('/update-order', auth, upload.none(), async (req, res) => {
                     req,
                     Exist.customer,
                     Exist.order_id,
-                    `Driver Assigned`
+                    `Driver Assigned`,
+                    {
+                        order_awaiting_pickup: true,
+                    }
                 )
                 sendStatusToDispensary(
                     req,
                     Exist.dispensary,
                     Exist.order_id,
-                    `Driver Assigned`
+                    `Driver Assigned`,
+                    {
+                        order_awaiting_pickup: true,
+                    }
                 )
             } else if (inTransit) {
                 updatedFields.order_awaiting_pickup = false
@@ -598,17 +664,24 @@ router.post('/update-order', auth, upload.none(), async (req, res) => {
                     req,
                     Exist.customer,
                     Exist.order_id,
-                    `In Transit`
+                    `In Transit`,
+                    {
+                        order_awaiting_pickup: false,
+                        order_in_transit: true,
+                    }
                 )
                 sendStatusToDispensary(
                     req,
                     Exist.dispensary,
                     Exist.order_id,
-                    `In Transit`
+                    `In Transit`,
+                    {
+                        order_awaiting_pickup: false,
+                        order_in_transit: true,
+                    }
                 )
             }
         } else if (delivered) {
-
             await Notification.create({
                 status: 'Order Delivered',
                 message: `Order (ID${Exist?.order_id}) status changed to 'Order Delivered'`,
@@ -618,13 +691,21 @@ router.post('/update-order', auth, upload.none(), async (req, res) => {
                 req,
                 Exist.customer,
                 Exist.order_id,
-                `Order Delivered`
+                `Order Delivered`,
+                {
+                    order_in_transit: false,
+                    order_delivered: true,
+                }
             )
             sendStatusToDispensary(
                 req,
                 Exist.dispensary,
                 Exist.order_id,
-                `Order Delivered`
+                `Order Delivered`,
+                {
+                    order_in_transit: false,
+                    order_delivered: true,
+                }
             )
         }
 
