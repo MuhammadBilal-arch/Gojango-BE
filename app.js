@@ -72,8 +72,8 @@ io.on('connection', (socket) => {
     })
 
     socket.on('orderDriverLocation', ({ orderId, location }) => {
+        socket.join(orderId);
         sendDriverLiveLocation(orderId, location) 
-        io.to(orderId).emit('updateDriverLocation', { orderId, location });
     });
 })
 
