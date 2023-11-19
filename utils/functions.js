@@ -85,7 +85,7 @@ const sendStatusToDispensary = (req, user, orderId, statusMessage , data) => {
         .to(user.id.toString())
         .emit('orderStatusUpdated', { orderId, status: statusMessage , data})
 }
-const sendDriverLiveLocation = (orderId,  data) => { 
+const sendDriverLiveLocation = (orderId,  location) => { 
     console.log(`Received location update for Order ${orderId}:`, location);
     req.app.locals.io
         .to(orderId)
