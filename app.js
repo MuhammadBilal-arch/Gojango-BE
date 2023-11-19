@@ -74,7 +74,7 @@ io.on('connection', (socket) => {
     socket.on('orderDriverLocation', ({ orderId, location }) => {
         socket.join(orderId);
         console.log(`Received location update for Order ${orderId}:`, location);
-        io.to(orderId).emit('updateDriverLocation', { orderId, location });
+        socket.to(orderId).emit('updateDriverLocation', { orderId, location });
     });
 })
 
