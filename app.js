@@ -71,7 +71,7 @@ io.on('connection', (socket) => {
         socket.join(user_id) // Join the room associated with the chat
     })
 
-    socket.on('orderDriverLocation', (orderId) => {
+    socket.on('orderDriverLocation', ({ orderId, location }) => {
         socket.join(orderId);
         console.log(`Received location update for Order ${orderId}:`, location);
         io.to(orderId).emit('updateDriverLocation', { orderId, location });
