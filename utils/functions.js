@@ -85,10 +85,11 @@ const sendStatusToDispensary = (req, user, orderId, statusMessage , data) => {
         .to(user.id.toString())
         .emit('orderStatusUpdated', { orderId, status: statusMessage , data})
 }
-const sendDriverLiveLocation = (req, user, orderId,  data) => { 
+const sendDriverLiveLocation = (orderId,  data) => { 
+    console.log(`Received location update for Order ${orderId}:`, location);
     req.app.locals.io
-        .to(user.id.toString())
-        .emit('orderDriverLocationUpdated', { orderId , data})
+        .to(orderId)
+        .emit('updateDriverLocation', { orderId , data})
 }
 
 const validateRequiredFields = (req, res, requiredFields) => {

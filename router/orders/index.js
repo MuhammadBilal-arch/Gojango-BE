@@ -12,7 +12,6 @@ const {
     calculateDistance,
     sendStatusToCustomer,
     sendStatusToDispensary,
-    sendDriverLiveLocation,
 } = require('../../utils/functions')
 const Notification = require('../../model/notification')
 const User = require('../../model/user')
@@ -187,10 +186,6 @@ router.patch('/update', auth, upload.none(), async (req, res) => {
                 lat: parseFloat(req.body.lat),
                 lng: parseFloat(req.body.lng),
             }
-            sendDriverLiveLocation(req, Exist.customer, Exist.order_id, {
-                lat: parseFloat(req.body.lat),
-                lng: parseFloat(req.body.lng),
-            })
         }
 
         if ('order_status' in req.body) {
@@ -523,10 +518,6 @@ router.post('/update-order', auth, upload.none(), async (req, res) => {
                 lat: parseFloat(req.body.lat),
                 lng: parseFloat(req.body.lng),
             }
-            sendDriverLiveLocation(req, Exist.customer, Exist.order_id, {
-                lat: parseFloat(req.body.lat),
-                lng: parseFloat(req.body.lng),
-            })
         }
 
         if ('order_status' in req.body) {

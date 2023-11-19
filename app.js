@@ -9,6 +9,7 @@ const indexRouter = require('./router')
 
 const http = require('http')
 const socketIo = require('socket.io')
+const { sendDriverLiveLocation } = require('./utils/functions')
 const server = http.createServer(app)
 
 dotenv.config({ path: './.env' })
@@ -70,10 +71,10 @@ io.on('connection', (socket) => {
         socket.join(user_id) // Join the room associated with the chat
     })
 
-    socket.on('orderDriverLocation', (user_id) => {
-        console.log('USER connected : ', user_id)
-        socket.join(user_id) // Join the room associated with the chat
-    })
+    socket.on('orderDriverLocation', ({ orderId, location }) => {
+        sendDriverLiveLocation(orderId, location) 
+        io.to(orderId).emit('updateDriverLocation', { orderId, location });
+    });
 })
 
 server.listen(PORT, () => {
