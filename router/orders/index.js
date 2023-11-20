@@ -432,13 +432,13 @@ router.get('/approved', upload.none(), auth, async (req, res) => {
         const userLatitude = parseFloat(req?.query?.lat) // User's latitude
         const userLongitude = parseFloat(req?.query?.long) // User's longitude
         const driverId = req.user.id
-
+        console.log(typeof driverId)
         const orders = await Order.find({
             order_status: true,
             dispensary_approved: true,
             order_delivered: false,
             driver_assigned: false,
-            rejected_drivers: { $ne: driverId },
+            rejected_drivers: { $ne: driverId.toString() },
         })
 
             .populate('dispensary')
