@@ -72,6 +72,10 @@ const userSchema = mongoose.Schema({
         type: Boolean,
         default: true,
     },
+    notification_status: {
+        type: Boolean,
+        default: true,
+    },
     createdAt: {
         type: Date,
     },

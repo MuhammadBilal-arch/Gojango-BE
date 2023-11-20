@@ -732,7 +732,7 @@ router.post('/update-order', auth, upload.none(), async (req, res) => {
     }
 })
 
-router.post('/driver-reject-order', auth, upload.none(), async (req, res) => {
+router.post('/driver-cancel-order', auth, upload.none(), async (req, res) => {
     try {
         const { id, driverId, reason } = req.body
 
@@ -761,7 +761,8 @@ router.post('/driver-reject-order', auth, upload.none(), async (req, res) => {
             ...req.body,
             order_cancel_reason: reason,
             updatedAt: Date.now(),
-            order_status: false, // Set order status to false indicating it's rejected
+            driver_assigned: false,
+            // order_status: false, // Set order status to false indicating it's rejected
         }
         updatedFields.rejected_drivers = [
             ...existingOrder.rejected_drivers,
@@ -799,6 +800,73 @@ router.post('/driver-reject-order', auth, upload.none(), async (req, res) => {
         return sendErrorMessage(statusCode.SERVER_ERROR, error.message, res)
     }
 })
+
+router.post('/driver-reject-order', auth, upload.none(), async (req, res) => {
+    try {
+        const { id, driverId} = req.body
+
+        if (!id || !driverId) {
+            return sendErrorMessage(
+                statusCode.NOT_ACCEPTABLE,
+                'Required: id, driverId',
+                res
+            )
+        }
+
+        const existingOrder = await Order.findOne({
+            _id: id,
+            rejected_drivers: { $ne: driverId },
+        })
+
+        if (!existingOrder) {
+            return sendErrorMessage(
+                statusCode.NOT_ACCEPTABLE,
+                'Invalid Order id or Order already rejected by the driver',
+                res
+            )
+        }
+
+        const updatedFields = {
+            ...req.body,
+            updatedAt: Date.now(),          
+        }
+        updatedFields.rejected_drivers = [
+            ...existingOrder.rejected_drivers,
+            driverId,
+        ]
+
+        const result = await Order.findByIdAndUpdate(id, updatedFields, {
+            new: true,
+        })
+            .populate(
+                'driver',
+                '-password -dob -license_image -userLocations -createdAt -updatedAt'
+            )
+            .populate(
+                'customer',
+                '-password -dob -license_image -userLocations -createdAt -updatedAt'
+            )
+            .populate('dispensary')
+
+        if (result) {
+            sendSuccessMessage(
+                statusCode.OK,
+                result,
+                'Order successfully updated.',
+                res
+            )
+        } else {
+            return sendErrorMessage(
+                statusCode.SERVER_ERROR,
+                'Invalid data',
+                res
+            )
+        }
+    } catch (error) {
+        return sendErrorMessage(statusCode.SERVER_ERROR, error.message, res)
+    }
+})
+
 
 router.get('/driver-current-order', upload.none(), auth, async (req, res) => {
     try {
